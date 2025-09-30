@@ -1,7 +1,7 @@
 <!-- Created: 20150101 - Updated: 20250804 -->
 <!-- Copyright (C) 1995-2025 Mark Constable <mc@netserva.org> (MIT License) -->
 
-# Shell Enhancement System
+# Runtime Configuration (RC) System
 
 A comprehensive collection of bash aliases and functions to enhance your command-line experience, extracted from the NetServa management system. This lightweight shell enhancement system provides useful shortcuts, cross-platform package management aliases, and powerful utility functions.
 
@@ -21,24 +21,24 @@ A comprehensive collection of bash aliases and functions to enhance your command
 
 1. Clone this repository to your home directory:
 ```bash
-git clone https://github.com/yourusername/sh.git ~/.sh
+git clone https://github.com/yourusername/sh.git ~/.rc
 ```
 
 2. Add the following line to your shell startup file:
    
    **For ~/.bashrc** (most common):
    ```bash
-   [[ -f ~/.sh/shrc.sh ]] && . ~/.sh/shrc.sh
+   [[ -f ~/.rc/shrc.sh ]] && . ~/.rc/shrc.sh
    ```
    
    **For ~/.bash_profile or ~/.profile**:
    ```bash
-   [[ -f ~/.sh/shrc.sh ]] && . ~/.sh/shrc.sh
+   [[ -f ~/.rc/shrc.sh ]] && . ~/.rc/shrc.sh
    ```
 
 3. (Optional) Install the SSH manager tool system-wide:
 ```bash
-sudo cp ~/.sh/sshm /usr/local/bin/
+sudo cp ~/.rc/srcm /usr/local/bin/
 sudo chmod +x /usr/local/bin/sshm
 ```
 
@@ -57,12 +57,12 @@ Most desktop Linux users should add the source line to `~/.bashrc`. Server users
 
 ## File Structure
 
-- **_shrc**: Main shell resource file containing all aliases and functions (390+ lines)
-- **_myrc**: Personal customization template (copy to ~/.myrc)  
-- **_help**: Quick reference help file (sourced to ~/.help)
-- **shm**: Shell management utility script (manages ~/.sh directory)
+- **_shrc**: Main shell resource file containing all aliases and functions (shared/synced)
+- **_myrc**: Personal customization file (local only, not synced - created by `rcm init`)
+- **shm**: SSH and shell management utility script
 - **README.md**: This documentation file
 - **LICENSE**: MIT License file
+- **.gitignore**: Excludes `_myrc` from git (keeps local customizations private)
 
 ### Remote Server Compatibility
 
@@ -116,7 +116,7 @@ The following aliases adapt to your system:
 
 ### Customization
 
-Add your own aliases and functions to `~/.sh/myrc.sh`:
+Add your own aliases and functions to `~/.rc/myrc.sh`:
 
 ```bash
 # Example custom aliases
@@ -133,50 +133,75 @@ Your customizations in `myrc.sh` will override any defaults from `shrc.sh`.
 
 ### Shell Manager (shm)
 
-The included `shm` tool manages the ~/.sh directory and shell enhancements:
+The included `shm` tool manages SSH hosts/keys and syncs ~/.rc to remote servers:
 
+#### SSH Host Management
 ```bash
-# Install shell enhancements locally
-shm install
+# Create new SSH host configuration
+rcm create myserver 192.168.1.10 22 root ~/.ssh/keys/mykey
 
-# Sync to a remote server
-shm sync user@server
+# List all SSH hosts
+rcm list
 
-# Test if properly installed
-shm test
+# Edit SSH host configuration
+rcm update myserver
 
-# Pull latest changes from git
-shm pull
+# Delete SSH host
+rcm delete myserver
 
-# Push changes to git
-shm push "commit message"
+# Show SSH host details
+rcm read myserver
+```
 
-# Show git status
-shm status
+#### SSH Key Management
+```bash
+# Create new SSH key
+rcm key_create mykey "comment" "password"
 
-# Show version information
-shm version
+# List all SSH keys
+rcm key_list
 
-# Fix file permissions
-shm perms
+# Show public key
+rcm key_read mykey
+
+# Delete SSH key
+rcm key_delete mykey
+```
+
+#### Initialization and Sync
+```bash
+# Initialize SSH structure (NS 3.0) and create local _myrc
+rcm init
+
+# Fix SSH permissions
+rcm perms
+
+# Sync ~/.rc to remote server (excludes _myrc)
+rcm sync myserver
 ```
 
 #### Remote Server Deployment
 
-Deploy shell enhancements to remote servers easily:
+Deploy shell enhancements to remote servers:
 
 ```bash
-# Deploy to single server
-shm sync root@server1
+# 1. Create SSH host configuration (if not exists)
+rcm create server1 192.168.1.100
 
-# Update local and deploy to multiple servers
-shm pull
-shm sync root@server1
-shm sync root@server2
-shm sync user@server3
+# 2. Sync ~/.rc directory to remote (excludes local _myrc)
+rcm sync server1
+
+# 3. Initialize on remote server
+ssh server1 "~/.rc/rcm init"
+
+# Now remote server has ~/.rc/_shrc (shared) and its own ~/.rc/_myrc (local)
 ```
 
-The sync command automatically installs the shell enhancements on the remote server.
+**Important Notes:**
+- `rcm sync` uses `rsync --exclude=_myrc` to preserve remote customizations
+- Each machine has its own `_myrc` file (never synced)
+- `_shrc` contains shared functions and is synced across all machines
+- Works with or without git (rsync-only deployment supported)
 
 ## Supported Platforms
 
@@ -196,7 +221,7 @@ The system automatically detects your OS and configures appropriate aliases:
 4. Check `ram` to see memory usage sorted by consumption
 5. Use `sc` for service management: `sc restart nginx`
 6. Run `health` for a quick server status overview
-7. Use `shm sync user@server` to deploy shell enhancements to remote servers
+7. Use `rcm sync user@server` to deploy shell enhancements to remote servers
 8. The `sx` function allows interactive remote command execution
 9. Use `pstree_service nginx` to see process trees for services
 10. All server monitoring aliases adapt to your OS (systemd, OpenRC, etc.)

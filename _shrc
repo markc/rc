@@ -5,7 +5,7 @@
 # Shell resource configuration - aliases and functions
 # This file contains useful aliases and bash functions extracted from
 # the NetServa management system. Source this in your ~/.bashrc:
-# [[ -f ~/.sh/shrc.sh ]] && . ~/.sh/shrc.sh
+# [[ -f ~/.rc/shrc.sh ]] && . ~/.rc/shrc.sh
 
 
 # Detect OS type
@@ -82,7 +82,7 @@ alias sn='[ -f ~/.note ] && cat ~/.note'
 # Help and configuration
 alias ?='bash ~/.help'
 alias eh='e ~/.help'
-alias es='e ~/.myrc; source ~/.shrc'
+alias es='e ~/.rc/_myrc && source ~/.rc/_shrc && source ~/.rc/_myrc && [[ -f ~/.ns/_nsrc ]] && source ~/.ns/_nsrc && echo "✅ Reloaded: _shrc → _myrc → _nsrc"'
 alias m='bash ~/.menu'
 
 # Package management aliases based on OS type
@@ -171,11 +171,7 @@ alias lastlog='last | head -10'
 alias failedlogins='journalctl -t sshd | grep "Failed password" | tail -10'
 alias connections='ss -tuln | grep :22'  # SSH connections
 
-# Additional tools
-alias a='php artisan'
-alias c='composer'
-alias lx='lxc list'
-alias hcp='shm pull; su - sysadm -c "cd var/www/html/hcp; git pull"'
+# Additional tools (NetServa-specific aliases moved to .nsrc.sh)
 
 # ========== FUNCTIONS ==========
 
@@ -267,35 +263,9 @@ getusers() {
     getent passwd | awk -F: '{if ($3 > 999 && $3 < 9999) print}'
 }
 
-# Display user info
-getuser() {
-    echo "\
-UUSER=$UUSER
-U_UID=$U_UID
-U_GID=$U_GID
-VHOST=$VHOST
-UPATH=$UPATH
-U_SHL=$U_SHL"
-}
+# Display user info (moved to .nsrc.sh)
 
-# Navigate to user directories (temporary old path)
-go2() {
-    if [[ -d /var/ns ]]; then
-        # New path structure
-        if [[ $1 =~ "@" ]]; then
-            cd /var/ns/${1#*@}*/mail/${1%@*}
-        else
-            cd /var/ns/$1*/var/www/public
-        fi
-    else
-        # Old path structure
-        if [[ $1 =~ "@" ]]; then
-            cd /home/u/${1#*@}*/home/*${1%@*}
-        else
-            cd /home/u/$1*/var/www
-        fi
-    fi
-}
+# Navigate to user directories (moved to .nsrc.sh)
 
 # Search for user in system
 grepuser() {
@@ -318,12 +288,9 @@ shpush() {
     git push
 }
 
-# Note: Git shortcuts for .ns repo (nspull, nspush) provided by ~/.ns/etc/netserva.sh
+# Note: Git shortcuts for .ns repo (nspull, nspush) provided by ~/.ns/.nsrc.sh
 
-# Show database command
-getdb() {
-    echo $SQCMD
-}
+# Show database command (moved to .nsrc.sh)
 
 # SSH with interactive shell
 sx() {
@@ -389,13 +356,24 @@ pstree_service() {
     fi
 }
 
+go2 () 
+{ 
+    if [[ $1 =~ "@" ]]; then
+        cd /srv/${1#*@}*/msg/*${1%@*};
+    else
+        cd /srv/$1*/web/app;
+    fi
+}
 
 # Set default color and label
 COLOR=${COLOR:-31}
 LABEL=$(hostname)
 
 # Load custom user configuration to allow overriding defaults
-[[ -f ~/.myrc ]] && . ~/.myrc
+[[ -f ~/.rc/_myrc ]] && . ~/.rc/_myrc
+
+# NetServa Infrastructure Stack (NSIS) configuration (optional, only on workstations)
+[[ -f "${NSDIR:-$HOME/.ns}/_nsrc" ]] && . "${NSDIR:-$HOME/.ns}/_nsrc"
 
 
 # Function exports disabled to prevent systemd warnings about BASH_FUNC_*%% variables
