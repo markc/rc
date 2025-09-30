@@ -15,13 +15,10 @@ export COLOR=32
 export PATH=/usr/local/bin:/usr/bin:/usr/sbin:~/.ns/bin
 
 # API tokens and credentials
-# SECURITY: Store real tokens in ~/.myrc.local (gitignored)
+# This file (_myrc) is gitignored, safe to store real tokens here
 # export BINARYLANE_API_TOKEN="your_token_here"
 # export CF_Key="your_cloudflare_key_here"
 # export CF_Email="your_email@example.com"
-
-# Load private configuration if it exists (gitignored)
-[[ -f ~/.myrc.local ]] && source ~/.myrc.local
 
 # Personal aliases
 alias ai='claude --dangerously-skip-permissions'

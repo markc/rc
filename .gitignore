@@ -1,9 +1,3 @@
 # Personal user configuration - do not commit
+# This file is created locally by 'rcm init' from _myrc.example template
 _myrc
-.myrc.local
-*.local
-
-# API tokens and sensitive data
-*token*
-*secret*
-*credential*
