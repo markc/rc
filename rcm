@@ -29,9 +29,15 @@ help() {
 
 # Initialize RC structure
 init() {
-    # Create user customization file if missing
+    # Create user customization file from template if missing
     if [[ ! -f ~/.rc/_myrc ]]; then
-        cat > ~/.rc/_myrc << 'MYRC'
+        if [[ -f ~/.rc/_myrc.example ]]; then
+            cp ~/.rc/_myrc.example ~/.rc/_myrc
+            echo "✅ Created ~/.rc/_myrc from template"
+            echo "ℹ️  Edit ~/.rc/_myrc to add your customizations"
+        else
+            # Fallback if template doesn't exist
+            cat > ~/.rc/_myrc << 'MYRC'
 # Personal shell customizations
 # This file is local to this machine and not synced
 
@@ -41,7 +47,8 @@ init() {
 # export MY_VAR="value"
 
 MYRC
-        echo "✅ Created ~/.rc/_myrc for local customizations"
+            echo "✅ Created ~/.rc/_myrc for local customizations"
+        fi
     else
         echo "ℹ️  ~/.rc/_myrc already exists"
     fi

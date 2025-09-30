@@ -1,0 +1,37 @@
+# Created: 20130218 - Updated: 20250930
+# Copyright (C) 1995-2025 Mark Constable <mc@netserva.org> (MIT License)
+#
+# Personal shell configuration file - Custom user aliases and functions
+# This file is sourced by ~/.shrc and is intended for your personal
+# customizations, aliases, and shell functions.
+#
+# SETUP: Run `rcm init` to create your local _myrc from this template
+
+# System identification
+export LABEL=hostname
+export COLOR=32
+
+# PATH additions
+export PATH=/usr/local/bin:/usr/bin:/usr/sbin:~/.ns/bin
+
+# API tokens and credentials
+# SECURITY: Store real tokens in ~/.myrc.local (gitignored)
+# export BINARYLANE_API_TOKEN="your_token_here"
+# export CF_Key="your_cloudflare_key_here"
+# export CF_Email="your_email@example.com"
+
+# Load private configuration if it exists (gitignored)
+[[ -f ~/.myrc.local ]] && source ~/.myrc.local
+
+# Personal aliases
+alias ai='claude --dangerously-skip-permissions'
+alias crd='composer run dev'
+alias ff='fastfetch --logo none'
+alias pint='./vendor/bin/pint'
+alias reload='source ~/.bashrc'
+alias sshtail='tail -f /var/log/auth.log'
+alias tart='php artisan tinker'
+
+# Personal functions
+# Add your custom functions here
+
