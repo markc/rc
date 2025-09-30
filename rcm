@@ -7,8 +7,10 @@
 help() {
     case $1 in
         i|init)
-            echo "Initialize ~/.rc structure and create local _myrc"
+            echo "Initialize ~/.rc structure"
             echo "Usage: rcm init"
+            echo "  - Creates ~/.rc/_myrc from template if missing"
+            echo "  - Adds sourcing line to ~/.bashrc if not present"
             ;;
         s|sync)
             echo "Sync ~/.rc directory to remote host"
@@ -51,6 +53,25 @@ MYRC
         fi
     else
         echo "ℹ️  ~/.rc/_myrc already exists"
+    fi
+
+    # Add sourcing line to ~/.bashrc if not already present
+    local bashrc="$HOME/.bashrc"
+    local source_line='[ -f ~/.rc/_shrc ] && . ~/.rc/_shrc'
+
+    if [[ -f "$bashrc" ]]; then
+        if ! grep -qF "$source_line" "$bashrc"; then
+            echo "" >> "$bashrc"
+            echo "# Source RC shell enhancements" >> "$bashrc"
+            echo "$source_line" >> "$bashrc"
+            echo "✅ Added sourcing line to ~/.bashrc"
+            echo "ℹ️  Run: source ~/.bashrc (or restart shell)"
+        else
+            echo "ℹ️  ~/.bashrc already sources ~/.rc/_shrc"
+        fi
+    else
+        echo "⚠️  ~/.bashrc not found, please add manually:"
+        echo "   $source_line"
     fi
 
     echo "✅ RC structure initialized"
