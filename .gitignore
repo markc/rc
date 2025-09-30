@@ -1,2 +1,9 @@
 # Personal user configuration - do not commit
 _myrc
+.myrc.local
+*.local
+
+# API tokens and sensitive data
+*token*
+*secret*
+*credential*
