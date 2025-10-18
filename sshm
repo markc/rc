@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
-# Created: 20230702 - Updated: 20250930
-# Copyright (C) 1995-2025 Mark Constable <markc@renta.net> (AGPL-3.0)
+# Created: 20230702 - Updated: 20251018
+# Copyright (C) 1995-2025 Mark Constable <mc@netserva.org> (AGPL-3.0)
 # SSH Manager - Manages ~/.ssh directory (hosts, keys, config)
 
 # Help function
