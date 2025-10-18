@@ -1,7 +1,10 @@
 # Created: 20130218 - Updated: 20251018
 # Copyright (C) 1995-2025 Mark Constable <mc@netserva.org> (MIT License)
 #
-# Personal shell configuration file - Custom user aliases and functions
-# This file is sourced by ~/.rc/_shrc and is intended for your personal
-# customizations, aliases, and shell functions.
+# Personal shell configuration - machine-local, never synced
+# Use for: API tokens, custom aliases, COLOR/LABEL overrides, PATH extensions
+
+# Essential aliases (makes rcm/sshm available without ~/.rc in PATH)
+alias rcm=~/.rc/rcm
+alias sshm=~/.rc/sshm
 
