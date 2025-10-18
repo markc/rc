@@ -40,24 +40,8 @@ init() {
             echo "✅ Created ~/.myrc from template"
             echo "ℹ️  Edit ~/.myrc to add your personal customizations"
         else
-            # Fallback if template doesn't exist
-            cat >~/.myrc <<'MYRC'
-# Personal configuration - machine-local, never synced or versioned
-# Sourced by ~/.rc/_shrc after base environment is set up
-#
-# Use this file for:
-# - Personal API tokens and credentials
-# - Machine-specific aliases and preferences
-# - Color/label customization
-# - PATH extensions: export PATH=$HOME/bin:$PATH
-
-# Examples:
-# export LABEL=$(hostname)
-# export COLOR=32
-# alias myproject='cd ~/projects/myproject'
-
-MYRC
-            echo "✅ Created ~/.myrc for personal customizations"
+            echo "❌ Error: Template ~/.rc/_myrc.example not found"
+            exit 1
         fi
     else
         echo "ℹ️  ~/.myrc already exists"
