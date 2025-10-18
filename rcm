@@ -6,24 +6,24 @@
 # Help function
 help() {
     case $1 in
-        i|init)
-            echo "Initialize ~/.rc structure"
-            echo "Usage: rcm init"
-            echo "  - Creates ~/.rc/_myrc from template if missing"
-            echo "  - Adds sourcing line to ~/.bashrc if not present"
-            ;;
-        s|sync)
-            echo "Sync ~/.rc directory to remote host"
-            echo "Usage: rcm sync <ssh_host>"
-            echo "Example: rcm sync myserver"
-            echo "Note: Excludes _myrc (local customizations)"
-            ;;
-        *)
-            echo "Usage: rcm <cmd> [args]"
-            echo "Commands: init, sync, help"
-            echo ""
-            echo "For SSH management use: sshm"
-            ;;
+    i | init)
+        echo "Initialize shell configuration"
+        echo "Usage: rcm init"
+        echo "  - Creates ~/.myrc from template if missing"
+        echo "  - Adds sourcing line to ~/.bashrc if not present"
+        ;;
+    s | sync)
+        echo "Sync ~/.rc directory to remote host"
+        echo "Usage: rcm sync <ssh_host>"
+        echo "Example: rcm sync myserver"
+        echo "Note: ~/.myrc is not synced (machine-local only)"
+        ;;
+    *)
+        echo "Usage: rcm <cmd> [args]"
+        echo "Commands: init, sync, help"
+        echo ""
+        echo "For SSH management use: sshm"
+        ;;
     esac
 }
 
@@ -32,27 +32,35 @@ help() {
 # Initialize RC structure
 init() {
     # Create user customization file from template if missing
-    if [[ ! -f ~/.rc/_myrc ]]; then
+    if [[ ! -f ~/.myrc ]]; then
         if [[ -f ~/.rc/_myrc.example ]]; then
-            cp ~/.rc/_myrc.example ~/.rc/_myrc
-            echo "✅ Created ~/.rc/_myrc from template"
-            echo "ℹ️  Edit ~/.rc/_myrc to add your customizations"
+            cp ~/.rc/_myrc.example ~/.myrc
+            # Add header explaining purpose
+            sed -i '1i# Personal configuration - machine-local, never synced or versioned\n# Sourced by ~/.rc/_shrc after base environment is set up\n' ~/.myrc
+            echo "✅ Created ~/.myrc from template"
+            echo "ℹ️  Edit ~/.myrc to add your personal customizations"
         else
             # Fallback if template doesn't exist
-            cat > ~/.rc/_myrc << 'MYRC'
-# Personal shell customizations
-# This file is local to this machine and not synced
+            cat >~/.myrc <<'MYRC'
+# Personal configuration - machine-local, never synced or versioned
+# Sourced by ~/.rc/_shrc after base environment is set up
+#
+# Use this file for:
+# - Personal API tokens and credentials
+# - Machine-specific aliases and preferences
+# - Color/label customization
+# - PATH extensions: export PATH=$HOME/bin:$PATH
 
-# Add your custom aliases, functions, and environment variables here
 # Examples:
+# export LABEL=$(hostname)
+# export COLOR=32
 # alias myproject='cd ~/projects/myproject'
-# export MY_VAR="value"
 
 MYRC
-            echo "✅ Created ~/.rc/_myrc for local customizations"
+            echo "✅ Created ~/.myrc for personal customizations"
         fi
     else
-        echo "ℹ️  ~/.rc/_myrc already exists"
+        echo "ℹ️  ~/.myrc already exists"
     fi
 
     # Add sourcing line to ~/.bashrc if not already present
@@ -61,9 +69,9 @@ MYRC
 
     if [[ -f "$bashrc" ]]; then
         if ! grep -qF "$source_line" "$bashrc"; then
-            echo "" >> "$bashrc"
-            echo "# Source RC shell enhancements" >> "$bashrc"
-            echo "$source_line" >> "$bashrc"
+            echo "" >>"$bashrc"
+            echo "# Source RC shell enhancements" >>"$bashrc"
+            echo "$source_line" >>"$bashrc"
             echo "✅ Added sourcing line to ~/.bashrc"
             echo "ℹ️  Run: source ~/.bashrc (or restart shell)"
         else
@@ -93,13 +101,14 @@ sync() {
         echo "Attempting connection anyway..."
     fi
 
-    echo "🔄 Syncing ~/.rc/ to $ssh_host:~/.rc/ (excluding _myrc)..."
-    rsync -avz --exclude='_myrc' --exclude='.git' ~/.rc/ "$ssh_host":~/.rc/
+    echo "🔄 Syncing ~/.rc/ to $ssh_host:~/.rc/..."
+    rsync -avz --exclude='.git' ~/.rc/ "$ssh_host":~/.rc/
 
     if [[ $? -eq 0 ]]; then
         echo "✅ Sync completed successfully"
-        echo "ℹ️  Run: ssh $ssh_host \"~/.rc/rcm init\""
-        echo "   to initialize remote _myrc customizations"
+        echo "ℹ️  Note: ~/.myrc is machine-local and was not synced"
+        echo "   Run: ssh $ssh_host \"~/.rc/rcm init\""
+        echo "   to create remote's own ~/.myrc if needed"
     else
         echo "❌ Sync failed"
         exit 1
@@ -108,10 +117,10 @@ sync() {
 
 # Command handler
 case $1 in
-    i|init) init ;;
-    s|sync) sync $2 ;;
-    h|help) help $2 ;;
-    *) echo "Unknown command '$1'" && help ;;
+i | init) init ;;
+s | sync) sync $2 ;;
+h | help) help $2 ;;
+*) echo "Unknown command '$1'" && help ;;
 esac
 
 exit 0

@@ -6,65 +6,65 @@
 # Help function
 help() {
     case $1 in
-        c|create)
-            echo "Create a new SSH Host file in ~/.ssh/hosts/"
-            echo "Usage: sshm create <Name> <Host> [Port] [User] [Skey]"
-            ;;
-        r|read|show)
-            echo "Show the content values for a host"
-            echo "Usage: sshm read <Name>"
-            ;;
-        u|update)
-            echo "Edit the contents of an SSH Host file"
-            echo "Usage: sshm update <Name>"
-            ;;
-        d|delete)
-            echo "Delete an SSH Host config file"
-            echo "Usage: sshm delete <Name>"
-            ;;
-        l|list)
-            echo "List all host config files in ~/.ssh/hosts/"
-            echo "Usage: sshm list"
-            ;;
-        kc|key_create)
-            echo "Create a new SSH Key in ~/.ssh/keys/"
-            echo "Usage: sshm key_create <Name> [Comment] [Password]"
-            ;;
-        kr|key_read)
-            echo "Show SSH Key"
-            echo "Usage: sshm key_read <Name>"
-            ;;
-        ku|key_update)
-            echo "Update SSH Key (alias for key_create)"
-            echo "Usage: sshm key_update <Name> [Comment] [Password]"
-            ;;
-        kd|key_delete)
-            echo "Delete SSH Key"
-            echo "Usage: sshm key_delete <Name>"
-            ;;
-        kl|key_list)
-            echo "List all SSH Keys in ~/.ssh/keys/"
-            echo "Usage: sshm key_list"
-            ;;
-        i|init)
-            echo "Initialize ~/.ssh structure (NS 3.0 format)"
-            echo "Usage: sshm init"
-            ;;
-        p|perms)
-            echo "Reset permissions for ~/.ssh"
-            echo "Usage: sshm perms"
-            ;;
-        t|test)
-            echo "Test SSH connectivity for hosts"
-            echo "Usage: sshm test [hostname] [--delete-failed]"
-            echo "  Without args: Test all hosts"
-            echo "  With hostname: Test specific host only"
-            echo "  --delete-failed: Delete failed host configs (not ephemeral)"
-            ;;
-        *)
-            echo "Usage: sshm <cmd> [args]"
-            echo "Commands: create, read, update, delete, list, test, key_create, key_read, key_update, key_delete, key_list, init, perms, help"
-            ;;
+    c | create)
+        echo "Create a new SSH Host file in ~/.ssh/hosts/"
+        echo "Usage: sshm create <Name> <Host> [Port] [User] [Skey]"
+        ;;
+    r | read | show)
+        echo "Show the content values for a host"
+        echo "Usage: sshm read <Name>"
+        ;;
+    u | update)
+        echo "Edit the contents of an SSH Host file"
+        echo "Usage: sshm update <Name>"
+        ;;
+    d | delete)
+        echo "Delete an SSH Host config file"
+        echo "Usage: sshm delete <Name>"
+        ;;
+    l | list)
+        echo "List all host config files in ~/.ssh/hosts/"
+        echo "Usage: sshm list"
+        ;;
+    kc | key_create)
+        echo "Create a new SSH Key in ~/.ssh/keys/"
+        echo "Usage: sshm key_create <Name> [Comment] [Password]"
+        ;;
+    kr | key_read)
+        echo "Show SSH Key"
+        echo "Usage: sshm key_read <Name>"
+        ;;
+    ku | key_update)
+        echo "Update SSH Key (alias for key_create)"
+        echo "Usage: sshm key_update <Name> [Comment] [Password]"
+        ;;
+    kd | key_delete)
+        echo "Delete SSH Key"
+        echo "Usage: sshm key_delete <Name>"
+        ;;
+    kl | key_list)
+        echo "List all SSH Keys in ~/.ssh/keys/"
+        echo "Usage: sshm key_list"
+        ;;
+    i | init)
+        echo "Initialize ~/.ssh structure (NS 3.0 format)"
+        echo "Usage: sshm init"
+        ;;
+    p | perms)
+        echo "Reset permissions for ~/.ssh"
+        echo "Usage: sshm perms"
+        ;;
+    t | test)
+        echo "Test SSH connectivity for hosts"
+        echo "Usage: sshm test [hostname] [--delete-failed]"
+        echo "  Without args: Test all hosts"
+        echo "  With hostname: Test specific host only"
+        echo "  --delete-failed: Delete failed host configs (not ephemeral)"
+        ;;
+    *)
+        echo "Usage: sshm <cmd> [args]"
+        echo "Commands: create, read, update, delete, list, test, key_create, key_read, key_update, key_delete, key_list, init, perms, help"
+        ;;
     esac
 }
 
@@ -77,9 +77,9 @@ create() {
     echo "Host $name
     Hostname $host
     Port $port
-    User $user" > ~/.ssh/hosts/$name
+    User $user" >~/.ssh/hosts/$name
 
-    [[ $skey != "none" ]] && echo "  IdentityFile $skey" >> ~/.ssh/hosts/$name || echo "  #IdentityFile none" >> ~/.ssh/hosts/$name
+    [[ $skey != "none" ]] && echo "  IdentityFile $skey" >>~/.ssh/hosts/$name || echo "  #IdentityFile none" >>~/.ssh/hosts/$name
 }
 
 show() {
@@ -192,7 +192,7 @@ Host *
   # ControlMaster for connection multiplexing
   ControlMaster auto
   ControlPath ~/.ssh/mux/%r@%h:%p
-  ControlPersist 10m" > ~/.ssh/config
+  ControlPersist 10m" >~/.ssh/config
     }
     perms
 
@@ -222,13 +222,13 @@ test() {
     declare -a failed_hosts failed_files ephemeral_offline_hosts
 
     # Load special hosts (git providers + ephemeral from file)
-    declare -A special_hosts=( ["github.com"]="git_provider" )
+    declare -A special_hosts=(["github.com"]="git_provider")
     local ephemeral_file="$HOME/.ssh/hosts/.ephemeral"
     if [[ -f "$ephemeral_file" ]]; then
         while IFS= read -r line; do
             [[ -z "$line" || "$line" =~ ^# ]] && continue
             special_hosts["$line"]="ephemeral"
-        done < "$ephemeral_file"
+        done <"$ephemeral_file"
     fi
 
     echo "🔍 Testing SSH connectivity in ~/.ssh/hosts/"
@@ -262,14 +262,14 @@ test() {
         if [[ -n "${special_hosts[$host]}" ]]; then
             local host_type="${special_hosts[$host]}"
             local ssh_output=$(ssh -o BatchMode=yes \
-                                 -o ConnectTimeout="$timeout" \
-                                 -o StrictHostKeyChecking=no \
-                                 -o UserKnownHostsFile=/dev/null \
-                                 "$host" 2>&1 || true)
+                -o ConnectTimeout="$timeout" \
+                -o StrictHostKeyChecking=no \
+                -o UserKnownHostsFile=/dev/null \
+                "$host" 2>&1 || true)
 
-            if [[ "$ssh_output" =~ "successfully authenticated" ]] || \
-               [[ "$ssh_output" =~ "Hi" ]] || \
-               [[ "$ssh_output" =~ "Permission denied (publickey)" ]]; then
+            if [[ "$ssh_output" =~ "successfully authenticated" ]] ||
+                [[ "$ssh_output" =~ "Hi" ]] ||
+                [[ "$ssh_output" =~ "Permission denied (publickey)" ]]; then
                 echo -e "${BLUE}✅ OK ($host_type)${NC}"
                 ((success++))
                 ((special_success++))
@@ -288,11 +288,11 @@ test() {
         else
             # Standard test
             if ssh -o BatchMode=yes \
-                   -o ConnectTimeout="$timeout" \
-                   -o StrictHostKeyChecking=no \
-                   -o UserKnownHostsFile=/dev/null \
-                   -o LogLevel=ERROR \
-                   "$host" "true" 2>/dev/null; then
+                -o ConnectTimeout="$timeout" \
+                -o StrictHostKeyChecking=no \
+                -o UserKnownHostsFile=/dev/null \
+                -o LogLevel=ERROR \
+                "$host" "true" 2>/dev/null; then
                 echo -e "${GREEN}✅ OK${NC}"
                 ((success++))
             else
@@ -381,23 +381,23 @@ stop() {
 
 # Command handler
 case $1 in
-    c|create) create $2 $3 $4 $5 $6 ;;
-    r|read|show) show $2 ;;
-    u|update) update $2 ;;
-    d|delete) delete $2 ;;
-    l|list) list ;;
-    t|test) test $2 $3 ;;
-    kc|key_create) key_create $2 $3 $4 ;;
-    kr|key_read) key_read $2 ;;
-    ku|key_update) key_create $2 $3 $4 ;;
-    kd|key_delete) key_delete $2 ;;
-    kl|key_list) key_list ;;
-    i|init) init ;;
-    p|perms) perms ;;
-    start) start ;;
-    stop) stop ;;
-    h|help) help $2 ;;
-    *) echo "Unknown command '$1'" && help ;;
+c | create) create $2 $3 $4 $5 $6 ;;
+r | read | show) show $2 ;;
+u | update) update $2 ;;
+d | delete) delete $2 ;;
+l | list) list ;;
+t | test) test $2 $3 ;;
+kc | key_create) key_create $2 $3 $4 ;;
+kr | key_read) key_read $2 ;;
+ku | key_update) key_create $2 $3 $4 ;;
+kd | key_delete) key_delete $2 ;;
+kl | key_list) key_list ;;
+i | init) init ;;
+p | perms) perms ;;
+start) start ;;
+stop) stop ;;
+h | help) help $2 ;;
+*) echo "Unknown command '$1'" && help ;;
 esac
 
 exit 0

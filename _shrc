@@ -7,7 +7,6 @@
 # the NetServa management system. Source this in your ~/.bashrc:
 # [[ -f ~/.rc/shrc.sh ]] && . ~/.rc/shrc.sh
 
-
 # Detect OS type
 detect_os() {
     local uname_s=$(uname -s | tr 'A-Z' 'a-z')
@@ -53,7 +52,6 @@ unalias sudo 2>/dev/null || true
 SUDO=$([[ $(id -u) -gt 0 ]] && echo '/usr/bin/sudo ')
 export SUDO
 
-
 # Note: Custom user configuration is loaded at the end of this file
 
 # ========== ALIASES ==========
@@ -70,7 +68,7 @@ alias e='nano -t -x -c'
 alias se='sudo nano -t -x -c'
 
 # System tools
-alias ff="fastfetch --logo none --colors-block-width 0"
+alias ff='fastfetch --logo none'
 alias p='ps auxxww | grep -v grep | grep'
 alias q='find -type f -print0 | xargs -0 grep '
 alias wt="curl -s -w '%{time_total}\n' -o /dev/null"
@@ -82,7 +80,7 @@ alias sn='[ -f ~/.note ] && cat ~/.note'
 # Help and configuration
 alias ?='bash ~/.help'
 alias eh='e ~/.help'
-alias es='e ~/.rc/_myrc && source ~/.rc/_shrc && source ~/.rc/_myrc && [[ -f ~/.ns/_nsrc ]] && source ~/.ns/_nsrc && echo "✅ Reloaded: _shrc → _myrc → _nsrc"'
+alias es='e ~/.myrc && source ~/.rc/_shrc && echo "✅ Reloaded: _shrc → _myrc → _nsrc"'
 alias m='bash ~/.menu'
 
 # Package management aliases based on OS type
@@ -146,15 +144,15 @@ alias oldunblock='iptables -D INPUT -j DROP -s '
 alias maillog="journalctl -f -n 10000 | stdbuf -oL grep 'warning: header Subject:' | sed -e 's/mail .*warning: header Subject:\(.*\)/\1/' -e 's/ from .*];//' -e 's/proto=.*$//'"
 
 # Server management tools
-alias ports='ss -tuln'              # Show listening ports
-alias procs='ps aux --sort=-%cpu | head -20'  # Top CPU processes
-alias disk='df -h'                  # Disk usage human readable
-alias mem='free -h'                 # Memory usage human readable
+alias ports='ss -tuln'                       # Show listening ports
+alias procs='ps aux --sort=-%cpu | head -20' # Top CPU processes
+alias disk='df -h'                           # Disk usage human readable
+alias mem='free -h'                          # Memory usage human readable
 alias temp='sensors 2>/dev/null || cat /sys/class/thermal/thermal_zone*/temp 2>/dev/null'
-alias netcon='ss -tuln | grep LISTEN'  # Network connections
+alias netcon='ss -tuln | grep LISTEN' # Network connections
 alias sysinfo='uname -a && uptime && free -h && df -h /'
 alias listening='netstat -tuln 2>/dev/null || ss -tuln'
-alias top10='ps aux --sort=-%cpu | head -11'  # Top 10 CPU processes
+alias top10='ps aux --sort=-%cpu | head -11' # Top 10 CPU processes
 
 # Log monitoring (adjust paths for different systems)
 alias logs='journalctl -f'
@@ -169,7 +167,7 @@ alias failed='systemctl list-units --failed'
 # Security monitoring
 alias lastlog='last | head -10'
 alias failedlogins='journalctl -t sshd | grep "Failed password" | tail -10'
-alias connections='ss -tuln | grep :22'  # SSH connections
+alias connections='ss -tuln | grep :22' # SSH connections
 
 # Additional tools (NetServa-specific aliases moved to .nsrc.sh)
 
@@ -198,45 +196,30 @@ if [[ ${OSTYP:-} == openwrt ]]; then
 elif [[ ${OSTYP:-} == alpine ]]; then
     sc() {
         # Convert systemd-style service@instance to OpenRC service.instance
+        local service_name="$2"
         if [[ "$2" == *"@"* ]]; then
-            local service_name="${2/@/.}"
-        else
-            local service_name="$2"
+            service_name="${2/@/.}"
         fi
-
-        # Helper function for WireGuard cleanup
-        wg_cleanup() {
-            local wg_interface="${service_name#wg-quick.}"
-            wg-quick down "$wg_interface" 2>/dev/null || true
-        }
 
         # Handle common actions
         case "$1" in
         enable)
-            $SUDO rc-update add "$service_name"
+            $SUDO rc-update add "$service_name" default
             ;;
         disable)
-            $SUDO rc-update del "$service_name"
+            $SUDO rc-update del "$service_name" default
             ;;
         status)
             $SUDO rc-service "$service_name" status
             ;;
         restart)
-            if [[ "$service_name" == wg-quick.* ]]; then
-                wg_cleanup
-                $SUDO rc-service "$service_name" stop 2>/dev/null || true
-            else
-                $SUDO rc-service "$service_name" stop
-            fi
-            $SUDO rc-service "$service_name" start
+            $SUDO rc-service "$service_name" restart
             ;;
         start)
-            [[ "$service_name" == wg-quick.* ]] && wg_cleanup
             $SUDO rc-service "$service_name" start
             ;;
         stop)
             $SUDO rc-service "$service_name" stop
-            [[ "$service_name" == wg-quick.* ]] && wg_cleanup
             ;;
         *)
             $SUDO rc-status --all | awk '/\[.*\]/ {print $1}'
@@ -302,9 +285,9 @@ sx() {
         ssh $_HOST -q -t "bash -ci '$@'" 2>&1
     } | {
         while IFS= read -r line; do
-            [[ $line != *"bash: cannot set terminal process group"* ]] && \
-            [[ $line != *"bash: no job control"* ]] && \
-            echo "$line"
+            [[ $line != *"bash: cannot set terminal process group"* ]] &&
+                [[ $line != *"bash: no job control"* ]] &&
+                echo "$line"
         done
     }
 }
@@ -338,16 +321,19 @@ health() {
 
 # Show process tree for a service
 pstree_service() {
-    [[ -z $1 ]] && { echo "Usage: pstree_service <service_name>"; return 1; }
+    [[ -z $1 ]] && {
+        echo "Usage: pstree_service <service_name>"
+        return 1
+    }
     local service="$1"
     local pid
-    
+
     if command -v systemctl >/dev/null 2>&1; then
         pid=$(systemctl show --property MainPID --value "$service" 2>/dev/null)
     else
         pid=$(pgrep -f "$service" | head -1)
     fi
-    
+
     if [[ -n "$pid" && "$pid" != "0" ]]; then
         echo "Process tree for $service (PID: $pid):"
         pstree -p "$pid" 2>/dev/null || ps --forest -o pid,ppid,cmd -p "$pid"
@@ -356,25 +342,31 @@ pstree_service() {
     fi
 }
 
-go2 () 
-{ 
+go2() {
     if [[ $1 =~ "@" ]]; then
-        cd /srv/${1#*@}*/msg/*${1%@*};
+        cd /srv/${1#*@}*/msg/*${1%@*}
     else
-        cd /srv/$1*/web/app;
+        cd /srv/$1*/web/app
     fi
 }
 
-# Set default color and label
+# Set baseline PATH for all environments (usr-merge compatible)
+# Modern systems use symlinks: /bin -> /usr/bin, /sbin -> /usr/sbin
+# NetServa Platform (_nsrc) will prepend ~/.ns/bin if it exists on workstations
+export PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin
+
+# Set default color and label (can be overridden by ~/.myrc)
 COLOR=${COLOR:-31}
-LABEL=$(hostname)
+LABEL=$(hostname 2>/dev/null || cat /proc/sys/kernel/hostname 2>/dev/null || echo "host")
 
-# Load custom user configuration to allow overriding defaults
-[[ -f ~/.rc/_myrc ]] && . ~/.rc/_myrc
+# Load personal configuration (machine-local, never synced or versioned)
+# This file is independent of ~/.rc/ and ~/.ns/ - survives their deletion
+# Can override defaults (COLOR, LABEL), extend PATH, define personal aliases
+[[ -f ~/.myrc ]] && . ~/.myrc
 
-# NetServa Infrastructure Stack (NSIS) configuration (optional, only on workstations)
-[[ -f "${NSDIR:-$HOME/.ns}/_nsrc" ]] && . "${NSDIR:-$HOME/.ns}/_nsrc"
-
+# Load NetServa Platform (NS) configuration (only on workstations)
+# Provides NetServa functions, aliases, and prepends ~/.ns/bin to PATH
+[[ -f "${NS:-$HOME/.ns}/_nsrc" ]] && . "${NS:-$HOME/.ns}/_nsrc"
 
 # Function exports disabled to prevent systemd warnings about BASH_FUNC_*%% variables
 # Functions are still available in the current shell but won't pollute child processes
