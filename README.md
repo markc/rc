@@ -75,4 +75,4 @@ ssh <host> ~/.rc/rcm init    # Creates remote's ~/.myrc
 
 ## License
 
-MIT License - Copyright (C) 1995-2025 Mark Constable
+Copyright (C) 1995-2025 Mark Constable <mc@netserva.org> (MIT License)

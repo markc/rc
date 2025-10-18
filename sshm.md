@@ -194,6 +194,4 @@ sshm key_read prod
 
 ## AUTHOR
 
-Mark Constable <mc@netserva.org>
-
-Copyright (C) 1995-2025 - Licensed under AGPL-3.0
+Copyright (C) 1995-2025 Mark Constable <mc@netserva.org> (MIT License)

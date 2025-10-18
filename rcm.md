@@ -83,6 +83,4 @@ es    # Edit ~/.myrc and reload
 
 ## AUTHOR
 
-Mark Constable <mc@netserva.org>
-
-Copyright (C) 1995-2025 - Licensed under MIT
+Copyright (C) 1995-2025 Mark Constable <mc@netserva.org> (MIT License)
