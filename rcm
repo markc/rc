@@ -2,6 +2,10 @@
 # Created: 20250930 - Updated: 20251018
 # Copyright (C) 1995-2025 Mark Constable <mc@netserva.org> (MIT License)
 # RC Manager - Manages ~/.rc runtime configuration directory
+# Source shell environment
+DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+[[ -f "$DIR/_shrc" ]] && source "$DIR/_shrc"
+
 
 # Help function
 help() {

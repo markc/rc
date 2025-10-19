@@ -7,6 +7,9 @@
 # the NetServa management system. Source this in your ~/.bashrc:
 # [[ -f ~/.rc/shrc.sh ]] && . ~/.rc/shrc.sh
 
+# Enable alias expansion in non-interactive shells (required for BASH_ENV)
+shopt -s expand_aliases 2>/dev/null
+
 # Detect OS type
 detect_os() {
     local uname_s=$(uname -s | tr 'A-Z' 'a-z')
@@ -123,11 +126,13 @@ else
     alias ram='ps -eo rss:10,vsz:10,%cpu:5,cmd --sort=rss | grep -v "^\s\+0" | cut -c -79'
 fi
 
-# Log viewing aliases
-alias l='journalctl -f'
-alias dlog='journalctl -f -t pdns_server -t pdns_recursor'
-alias hlog='journalctl -f -t hlog'
-alias slog='journalctl -f -t sshd'
+# Log viewing aliases (systemd-based systems only)
+if [[ $OSTYP != alpine && $OSTYP != openwrt ]]; then
+    alias l='journalctl -f'
+    alias dlog='journalctl -f -t pdns_server -t pdns_recursor'
+    alias hlog='journalctl -f -t hlog'
+    alias slog='journalctl -f -t sshd'
+fi
 alias mlog='tail -f /var/log/mail.log'
 alias mgrep='mlog | grep '
 alias alog='tail -f ../log/access.log'
@@ -214,6 +219,9 @@ elif [[ ${OSTYP:-} == alpine ]]; then
             ;;
         restart)
             $SUDO rc-service "$service_name" restart
+            ;;
+        reload)
+            $SUDO rc-service "$service_name" reload
             ;;
         start)
             $SUDO rc-service "$service_name" start
@@ -353,7 +361,7 @@ go2() {
 # Set baseline PATH for all environments (usr-merge compatible)
 # Modern systems use symlinks: /bin -> /usr/bin, /sbin -> /usr/sbin
 # NetServa Platform (_nsrc) will prepend ~/.ns/bin if it exists on workstations
-export PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin
+export PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
 
 # Set default color and label (can be overridden by ~/.myrc)
 COLOR=${COLOR:-31}
