@@ -126,14 +126,6 @@ else
     alias ram='ps -eo rss:10,vsz:10,%cpu:5,cmd --sort=rss | grep -v "^\s\+0" | cut -c -79'
 fi
 
-# Log viewing aliases (systemd-based systems only)
-if [[ $OSTYP != alpine && $OSTYP != openwrt ]]; then
-    alias l='journalctl -f'
-    alias dlog='journalctl -f -t pdns_server -t pdns_recursor'
-    alias hlog='journalctl -f -t hlog'
-    alias slog='journalctl -f -t sshd'
-fi
-alias mlog='tail -f /var/log/mail.log'
 alias mgrep='mlog | grep '
 alias alog='tail -f ../log/access.log'
 alias elog='tail -f /var/log/nginx/error.log'
