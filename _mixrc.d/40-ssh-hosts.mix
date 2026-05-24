@@ -1,0 +1,11 @@
+-- 40-ssh-hosts.mix — SSH host shortcut aliases.
+-- Hostnames resolved via ~/.ssh/config and ~/.ssh/hosts/* (DNS-independent).
+
+alias gw = "ssh gw"
+alias mgo = "ssh mgo"
+alias motd = "ssh motd"
+alias b1 = "ssh b1"
+alias b3 = "ssh b3"
+alias a1 = "ssh a1"
+alias a2 = "ssh a2"
+alias a3 = "ssh a3"

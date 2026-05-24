@@ -1,0 +1,34 @@
+-- ~/.mix/_mixrc.example — template for ~/.mixrc (user-home Mix rc)
+-- Copy to ~/.mixrc and edit. ~/.mixrc is machine-local — never sync or
+-- version it (it carries secrets, machine-specific PATH, host aliases).
+--
+-- Mirrors the ~/.sh/_myrc.example → ~/.myrc relationship, with one
+-- structural difference (per 2026-05-23 bash-to-Mix port plan, §2
+-- decision c): ~/.mixrc is BOTH the entry point Mix auto-loads (post
+-- ~/.cosmix/src/_doc/planned/2026-05-23-mix-as-login-shell.md P1.1) and
+-- the user customization layer. The bash side's bashrc/myrc split is
+-- intentionally not inherited — one user-edited file, not two.
+
+-- ─── Load the toolkit first ─────────────────────────────────────────
+source env("HOME") .. "/.mix/_mixrc"
+
+-- ─── Opt-in modules (mirror ~/.myrc → ~/.sh/_shrc.d/*.sh pattern) ───
+-- Uncomment per machine:
+-- source env("HOME") .. "/.mix/_mixrc.d/server.mix"
+-- source env("HOME") .. "/.mix/_mixrc.d/logs.mix"
+-- source env("HOME") .. "/.mix/_mixrc.d/net.mix"
+
+-- ─── Secrets (may reset PATH internally — must come before PATH below) ─
+-- if is_file(env("HOME") .. "/.ns/_etc/secrets/secrets.mix") then
+--     source env("HOME") .. "/.ns/_etc/secrets/secrets.mix"
+-- end
+
+-- ─── PATH (single source of truth) ──────────────────────────────────
+-- export PATH = env("HOME") .. "/.local/bin:" .. env("HOME") .. "/.cargo/bin:" .. env("HOME") .. "/.ns/_bin:" .. env("PATH")
+
+-- ─── Prompt label / colour (overrides _mixrc defaults) ───────────────
+-- export LABEL = "myhost"
+-- export COLOR = "32"
+
+-- ─── Machine-local aliases / functions ──────────────────────────────
+-- alias ai = "claude --dangerously-skip-permissions"

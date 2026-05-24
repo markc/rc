@@ -1,0 +1,37 @@
+-- 70-functions.mix — shell helper functions.
+
+-- One-shot system health snapshot
+function health()
+    print "=== System Health Check ==="
+    print now_iso()
+    sh "uptime -p"
+    print ""
+    print "=== Memory ==="
+    sh "free -h"
+    print ""
+    print "=== Disk ==="
+    sh "df -h / | tail -1"
+    print ""
+    print "=== Top Processes (CPU) ==="
+    sh "ps aux --sort=-%cpu | head -6"
+end
+
+-- systemctl wrapper (uses $SUDO set in ~/.mix/_mixrc)
+function sc($action, $service)
+    sh "${SUDO}systemctl ${action} ${service}"
+end
+
+-- Edit personal rc and reload from the trampoline
+function es()
+    sh "nano -t -x -c ~/.myrc.mix"
+    source env("HOME") .. "/.mixrc"
+    print "Reloaded ~/.mixrc"
+end
+
+-- Generate a random password (uses Mix builtin, not /dev/urandom shell-out)
+function newpw($len)
+    if $len == nil then
+        $len = 16
+    end
+    return random_password($len)
+end

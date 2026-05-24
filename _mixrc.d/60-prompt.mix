@@ -1,0 +1,14 @@
+-- 60-prompt.mix — interactive REPL prompt.
+-- Honours $LABEL and $COLOR; user can override them from
+-- ~/.mixrc or ~/.myrc.mix sourced after this module.
+
+-- Defaults. Plain assignment (no `if $X == nil` defensive form) —
+-- Mix treats undefined sigil reads as runtime errors, so the variable
+-- must be assigned at least once before any conditional read.
+$COLOR = "32"
+$LABEL = hostname()
+
+function prompt()
+    $dir = replace(cwd(), env("HOME"), "~")
+    return "\e[1;${COLOR}m${LABEL}\e[0m \e[34m${dir}\e[0m "
+end

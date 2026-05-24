@@ -1,0 +1,34 @@
+-- 20-aliases.mix — universal command aliases.
+
+-- Navigation and file listing
+alias la = "LC_COLLATE=C ls -lFAh --group-directories-first --color"
+alias ll = "LC_COLLATE=C ls -lF --group-directories-first --color"
+alias ls = "LC_COLLATE=C ls -F --group-directories-first --color"
+alias df = "df -kTh"
+
+-- Editors
+alias e = "nano -t -x -c"
+alias se = "sudo nano -t -x -c"
+
+-- System tools
+alias ff = "fastfetch --logo none"
+
+-- Monitoring
+alias ports = "ss -tuln"
+alias procs = "ps aux --sort=-%cpu | head -20"
+alias disk = "df -h"
+alias mem = "free -h"
+alias sysinfo = "uname -a && uptime && free -h && df -h /"
+alias logs = "journalctl -f"
+alias l = "journalctl -f"
+
+-- Services
+alias services = "systemctl list-units --type=service --state=running"
+alias failed = "systemctl list-units --failed"
+
+-- Git shortcuts
+alias gs = "git status"
+alias gc = "git commit"
+alias gp = "git push"
+alias gd = "git diff"
+alias gl = "git log --oneline -20"

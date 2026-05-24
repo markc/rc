@@ -1,0 +1,45 @@
+-- ~/.mix/_mixrc — public Mix shell toolkit (wrapper)
+--
+-- Sourced from ~/.mixrc (the user's personal trampoline; bash-parallel
+-- to ~/.bashrc → ~/.sh/_shrc). Provides shell-foundational env that the
+-- _mixrc.d/ topic modules can rely on ($ostyp, $SUDO, $HOME), then
+-- glob-loads ~/.mix/_mixrc.d/*.mix in lexical order.
+--
+-- This file is the public, shareable wrapper. No machine-local content,
+-- no secrets. User additions go in ~/.myrc.mix (personal/secrets) or in
+-- topic modules dropped into ~/.mix/_mixrc.d/ that the user owns.
+--
+-- Plan reference: ~/.cosmix/src/_doc/planned/2026-05-24-repo-split-mix-mixrc-cos.md
+-- (target: future standalone `mixrc` public repo, cloned to ~/.mix/).
+
+$HOME = env("HOME")
+
+-- OS detection (ini-parse /etc/os-release; modules key off $ostyp)
+$ostyp = "unknown"
+if is_file("/etc/os-release") then
+    $os_info = ini_parse(read_file("/etc/os-release"))
+    if has_key($os_info, "_global") then
+        $os_id = $os_info["_global"]["ID"]
+        if $os_id != nil and $os_id != "" then
+            $ostyp = $os_id
+        end
+    end
+end
+
+-- SUDO prefix when non-root (string; functions use as ${SUDO}systemctl ...)
+$uid = trim(sh "id -u")
+if $uid != "0" then
+    $SUDO = "/usr/bin/sudo "
+else
+    $SUDO = ""
+end
+
+-- Glob-load topic modules. Lexical sort (verified) means NN- prefix
+-- controls order: 10-path → 20-aliases → 30-pkgmgr → 40-ssh-hosts →
+-- 50-tools → 60-prompt → 70-functions.
+$mixrc_d = "${HOME}/.mix/_mixrc.d"
+if is_dir($mixrc_d) then
+    for each $f in glob("${mixrc_d}/*.mix")
+        source $f
+    end
+end

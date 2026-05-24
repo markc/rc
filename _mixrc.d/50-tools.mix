@@ -1,0 +1,3 @@
+-- 50-tools.mix — agent / tooling shortcuts.
+
+alias ai = "claude --dangerously-skip-permissions"

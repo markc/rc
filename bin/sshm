@@ -1,0 +1,523 @@
+#!/usr/bin/env mix
+-- sshm — SSH Manager for Mix
+-- Port of ~/.rc/rcm (SSH host/key management, init, sync, git)
+-- Runtime path: ~/.mix/bin/sshm  (installed once by hand; not repo-tracked)
+-- The ~/.mix/ scaffold (~/.mixrc, _mixrc, _mixrc.d/) is hand-provisioned
+-- per ~/.cosmix/src/_doc/planned/2026-05-24-bash-to-mix-port.md §A0,
+-- independently of this script.
+
+$HOME = env("HOME")
+$SSH = "${HOME}/.ssh"
+if env("COSMIX_SRC") != "" then
+    $MX = env("COSMIX_SRC")
+else
+    $MX = "${HOME}/.cosmix"
+end
+
+-- ========== HELP ==========
+
+function help_all()
+    print "SSHM — SSH Manager for Mix"
+    print "=========================="
+    print ""
+    print "SETUP"
+    print "  sshm init                                       # Set up this machine"
+    print "  sshm sync HOST                                  # Deploy ~/.cosmix to remote"
+    print ""
+    print "HOST COMMANDS"
+    print "  sshm create NAME IP [PORT] [USER] [KEYFILE]     # Save host"
+    print "  sshm list                                       # Show all hosts"
+    print "  sshm read NAME                                  # Show host config"
+    print "  sshm update NAME                                # Edit host in editor"
+    print "  sshm delete NAME                                # Remove host"
+    print "  sshm test [NAME]                                # Test connectivity"
+    print ""
+    print "KEY COMMANDS"
+    print "  sshm key_create [NAME] [COMMENT] [PASSPHRASE]   # Create Ed25519 keypair"
+    print "  sshm key_list                                   # Show all keys"
+    print "  sshm key_read [NAME]                            # Show public key"
+    print "  sshm key_delete NAME                            # Remove keypair"
+    print ""
+    print "GIT"
+    print "  sshm pull                                       # Fetch + pull ~/.cosmix"
+    print "  sshm push [MESSAGE]                             # Commit + push ~/.cosmix"
+    print ""
+    print "UTILITIES"
+    print "  sshm perms                                      # Fix ~/.ssh permissions"
+    print "  sshm start                                      # Start sshd"
+    print "  sshm stop                                       # Stop + disable sshd"
+    print ""
+    print "SHORTCUTS"
+    print "  i=init  s=sync  c=create  r=read  u=update"
+    print "  d=delete  l=list  t=test  p=perms"
+    print "  kc=key_create  kr=key_read  kd=key_delete  kl=key_list"
+    print "  h=help  ha=help all"
+end
+
+function help_short()
+    print "Usage: sshm <command> [args]"
+    print ""
+    print "  SETUP     i  = init       s  = sync"
+    print "  HOSTS     c  = create     r  = read      u = update"
+    print "            d  = delete     l  = list       t = test"
+    print "  KEYS      kc = key_create kr = key_read"
+    print "            kd = key_delete kl = key_list"
+    print "  GIT       pull            push"
+    print "  UTILS     p  = perms      start           stop"
+    print "  HELP      h  = help       ha = help all"
+    print ""
+    print "Quick start:  sshm init && sshm create myserver 10.0.0.5 && ssh myserver"
+    print "Full help:    sshm ha"
+end
+
+-- ========== INIT ==========
+
+function mx_init()
+    -- The ~/.mix/ scaffold (~/.mixrc, _mixrc, _mixrc.d/) is hand-provisioned
+    -- per ~/.cosmix/src/_doc/planned/2026-05-24-bash-to-mix-port.md §A0.
+    -- sshm init only sets up ~/.ssh/ — keeps sshm self-contained and matches
+    -- the strict-A5.4 untrack model (no templates ride along with sshm).
+    ssh_init()
+end
+
+function ssh_init()
+    -- Create SSH directory structure
+    if not is_dir($SSH) then
+        mkdir($SSH)
+        sh "chmod 700 ${SSH}"
+        print "Created ~/.ssh"
+    end
+
+    if not is_file("${SSH}/authorized_keys") then
+        write_file("${SSH}/authorized_keys", "")
+        sh "chmod 600 ${SSH}/authorized_keys"
+        print "Created ~/.ssh/authorized_keys"
+    end
+
+    $dirs = ["hosts", "keys", "mux"]
+    for each $d in $dirs
+        if not is_dir("${SSH}/${d}") then
+            mkdir("${SSH}/${d}")
+            sh "chmod 700 ${SSH}/${d}"
+            print "Created ~/.ssh/${d}"
+        end
+    next
+
+    -- Create SSH config if missing
+    if not is_file("${SSH}/config") then
+        $date = date_format(time(), "%Y%m%d")
+        $config = <<EOF
+# SSH Configuration
+# Created by sshm on ${date}
+
+# Security and Performance
+Ciphers aes128-ctr,aes192-ctr,aes256-ctr,aes128-gcm@openssh.com,aes256-gcm@openssh.com,chacha20-poly1305@openssh.com
+
+# Include all host configurations from ~/.ssh/hosts/
+Include ~/.ssh/hosts/*
+
+# Global defaults for all hosts
+Host *
+  TCPKeepAlive yes
+  ServerAliveInterval 30
+  ForwardAgent yes
+  AddKeysToAgent yes
+  IdentitiesOnly yes
+  # ControlMaster for connection multiplexing
+  ControlMaster auto
+  ControlPath ~/.ssh/mux/%r@%h:%p
+  ControlPersist 10m
+EOF
+        write_file("${SSH}/config", $config)
+        print "Created ~/.ssh/config"
+    end
+
+    do_perms()
+    print "SSH initialized"
+end
+
+-- ========== HOST COMMANDS ==========
+
+function host_create($name, $host, $port, $user, $skey)
+    if $name == nil or $host == nil then
+        print "Usage: sshm create <name> <ip> [port] [user] [keyfile]"
+        return
+    end
+    if $port == nil then
+        $port = "22"
+    end
+    if $user == nil then
+        $user = "root"
+    end
+    if $skey == nil then
+        $skey = "~/.ssh/keys/default"
+    end
+
+    $config = "Host ${name}\n  Hostname ${host}\n  Port ${port}\n  User ${user}\n  IdentityFile ${skey}\n"
+    write_file("${SSH}/hosts/${name}", $config)
+    print "Created SSH host: ${name} (${user}@${host}:${port})"
+end
+
+function host_read($name)
+    if $name == nil then
+        print "Usage: sshm read <name>"
+        return
+    end
+    $path = "${SSH}/hosts/${name}"
+    if is_file($path) then
+        $content = read_file($path)
+        print $content
+    else
+        print "Error: host '${name}' not found"
+    end
+end
+
+function host_update($name)
+    if $name == nil then
+        print "Usage: sshm update <name>"
+        return
+    end
+    $path = "${SSH}/hosts/${name}"
+    if is_file($path) then
+        $editor = env("EDITOR")
+        if $editor == "" then
+            $editor = "nano -t -x -c"
+        end
+        sh "${editor} ${path}"
+    else
+        print "Error: host '${name}' not found"
+    end
+end
+
+function host_delete($name)
+    if $name == nil then
+        print "Usage: sshm delete <name>"
+        return
+    end
+    $path = "${SSH}/hosts/${name}"
+    if is_file($path) then
+        sh "rm ${path}"
+        print "Removed SSH host: ${name}"
+    else
+        print "Error: host '${name}' not found"
+    end
+end
+
+function host_list()
+    $files = glob("${SSH}/hosts/*")
+    if len($files) == 0 then
+        print "No hosts configured"
+        return
+    end
+    for each $file in $files
+        $basename = basename($file)
+        if starts_with($basename, ".") then
+            -- skip hidden files
+        else
+            $content = read_file($file)
+            $host = ""
+            $hostname = ""
+            $port = "22"
+            $user = "root"
+            $key = ""
+            $lines_list = split($content, "\n")
+            for each $line in $lines_list
+                $line = trim($line)
+                if starts_with($line, "Host ") then
+                    $host = replace($line, "Host ", "")
+                else if starts_with($line, "Hostname ") then
+                    $hostname = replace($line, "Hostname ", "")
+                else if starts_with($line, "Port ") then
+                    $port = replace($line, "Port ", "")
+                else if starts_with($line, "User ") then
+                    $user = replace($line, "User ", "")
+                else if starts_with($line, "IdentityFile ") then
+                    $key = replace($line, "IdentityFile ", "")
+                end
+            next
+            -- Pad fields for alignment
+            $host = rpad($host, 15)
+            $hostname = rpad($hostname, 17)
+            $port = rpad($port, 5)
+            $user = rpad($user, 10)
+            print "${host} ${hostname} ${port} ${user} ${key}"
+        end
+    next
+end
+
+function host_test($name)
+    if $name != nil then
+        -- Test single host
+        $path = "${SSH}/hosts/${name}"
+        if not is_file($path) then
+            print "Error: host '${name}' not found"
+            return
+        end
+        print "Testing ${name}..."
+        $result = run_rc("ssh -o BatchMode=yes -o ConnectTimeout=5 -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o LogLevel=ERROR ${name} true 2>/dev/null")
+        if $result["rc"] == 0 then
+            print "\e[32mOK\e[0m ${name}"
+        else
+            print "\e[31mFAILED\e[0m ${name}"
+        end
+        return
+    end
+
+    -- Test all hosts
+    print "Testing SSH connectivity..."
+    print ""
+    $files = glob("${SSH}/hosts/*")
+    $total = 0
+    $success = 0
+    $fail = 0
+
+    for each $file in $files
+        $name = basename($file)
+        if starts_with($name, ".") or $name == "config" then
+            -- skip
+        else
+            $total = $total + 1
+            $result = run_rc("ssh -o BatchMode=yes -o ConnectTimeout=5 -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o LogLevel=ERROR ${name} true 2>/dev/null")
+            if $result["rc"] == 0 then
+                print "  \e[32mOK\e[0m     ${name}"
+                $success = $success + 1
+            else
+                print "  \e[31mFAILED\e[0m ${name}"
+                $fail = $fail + 1
+            end
+        end
+    next
+
+    print ""
+    print "Total: ${total}  OK: ${success}  Failed: ${fail}"
+end
+
+-- ========== KEY COMMANDS ==========
+
+function key_create($name, $comment, $passphrase)
+    if $name == nil then
+        $name = "default"
+    end
+    if $comment == nil then
+        $comment = hostname() .. "@lan"
+    end
+    if $passphrase == nil then
+        $passphrase = ""
+    end
+
+    $path = "${SSH}/keys/${name}"
+    if is_file($path) then
+        print "Warning: key '${name}' already exists at ${path}"
+        return
+    end
+
+    sh "ssh-keygen -o -a 100 -t ed25519 -f ${path} -C '${comment}' -N '${passphrase}'"
+    if $rc == 0 then
+        print "Created key: ${name}"
+    else
+        print "Error: key creation failed"
+    end
+end
+
+function key_read($name)
+    if $name == nil then
+        $name = "default"
+    end
+    $path = "${SSH}/keys/${name}.pub"
+    if is_file($path) then
+        $content = read_file($path)
+        print trim($content)
+    else
+        print "Warning: key '${name}' not found"
+    end
+end
+
+function key_delete($name)
+    if $name == nil then
+        print "Usage: sshm key_delete <name>"
+        return
+    end
+    $path = "${SSH}/keys/${name}"
+    if is_file($path) then
+        sh "rm ${path} ${path}.pub"
+        print "Removed key: ${name}"
+    else
+        print "Error: key '${name}' not found"
+    end
+end
+
+function key_list()
+    $files = glob("${SSH}/keys/*.pub")
+    if len($files) == 0 then
+        print "No keys found"
+        return
+    end
+    for each $file in $files
+        $basename = replace(basename($file), ".pub", "")
+        $fingerprint = trim(sh "ssh-keygen -lf ${file}")
+        print "${basename}  ${fingerprint}"
+    next
+end
+
+-- ========== SYNC ==========
+
+function do_sync($host)
+    if $host == nil then
+        print "Usage: sshm sync <host>"
+        return
+    end
+
+    print "Syncing ~/.cosmix/ to ${host}:~/.cosmix/..."
+    sh "rsync -avz --exclude='.git' --exclude='target' ${MX}/ ${host}:~/.cosmix/"
+    if $rc == 0 then
+        print "Sync completed"
+        print ""
+        print "If sshm isn't yet installed on ${host}, bootstrap it manually:"
+        print "  ssh ${host} 'mkdir -p ~/.mix/bin'"
+        print "  scp ~/.mix/bin/sshm ${host}:~/.mix/bin/sshm"
+        print "  ssh ${host} '~/.mix/bin/sshm init'"
+    else
+        print "Error: sync failed"
+    end
+end
+
+-- ========== GIT ==========
+
+function do_pull()
+    $status = trim(sh "cd ${MX} && git fetch origin 2>&1 && git status -sb | head -1")
+    print $status
+
+    $local = trim(sh "cd ${MX} && git rev-parse HEAD")
+    $remote = trim(sh "cd ${MX} && git rev-parse @{u} 2>/dev/null")
+
+    if $local == $remote then
+        print "~/.cosmix is up to date"
+    else
+        $behind = trim(sh "cd ${MX} && git rev-list --count HEAD..@{u} 2>/dev/null")
+        if $behind != "0" and $behind != "" then
+            print "${behind} new commit(s) available"
+            sh "cd ${MX} && git pull --ff-only"
+            if $rc == 0 then
+                print "~/.cosmix updated"
+            else
+                print "Error: pull failed (local changes?) — try: sshm push first"
+            end
+        else
+            print "Local is ahead of upstream — use: sshm push"
+        end
+    end
+end
+
+function do_push($msg)
+    $status = trim(sh "cd ${MX} && git status --porcelain")
+
+    if $status == "" then
+        -- Nothing to commit — check if we need to push
+        $ahead = trim(sh "cd ${MX} && git rev-list --count @{u}..HEAD 2>/dev/null")
+        if $ahead != "0" and $ahead != "" then
+            print "Pushing ${ahead} commit(s)..."
+            sh "cd ${MX} && git push"
+            if $rc == 0 then
+                print "Pushed to origin"
+            else
+                print "Error: push failed"
+            end
+        else
+            print "Nothing to commit, up to date with origin"
+        end
+        return
+    end
+
+    -- Build commit message
+    if $msg == nil or $msg == "" then
+        $changed = trim(sh "cd ${MX} && git status --porcelain | awk '{print $2}' | tr '\\n' ' '")
+        $msg = "Update: ${changed}"
+    end
+
+    sh "cd ${MX} && git add -A && git commit -m '${msg}' && git push"
+    if $rc == 0 then
+        print "Committed and pushed"
+    else
+        print "Error: commit/push failed"
+    end
+end
+
+-- ========== UTILITIES ==========
+
+function do_perms()
+    -- Directories: 700, files: 600
+    $dirs = glob("${SSH}/*")
+    for each $d in $dirs
+        if is_dir($d) then
+            sh "chmod 700 ${d}"
+        end
+    next
+    $all_files = glob("${SSH}/**/*")
+    for each $f in $all_files
+        if is_file($f) then
+            sh "chmod 600 ${f}"
+        end
+    next
+    sh "chmod 700 ${SSH}"
+    print "Updated permissions for ~/.ssh"
+end
+
+function do_start()
+    sh "sudo systemctl start sshd"
+    print "SSH daemon started"
+end
+
+function do_stop()
+    sh "sudo systemctl stop sshd && sudo systemctl disable sshd"
+    sh "sudo pkill -9 sshd 2>/dev/null"
+    print "SSH daemon stopped and disabled"
+end
+
+-- ========== COMMAND DISPATCH ==========
+
+$cmd = $1
+
+if $cmd == nil or $cmd == "-h" or $cmd == "--help" then
+    help_short()
+else if $cmd == "ha" or $cmd == "help all" then
+    help_all()
+else if $cmd == "h" or $cmd == "help" then
+    help_short()
+else if $cmd == "i" or $cmd == "init" then
+    mx_init()
+else if $cmd == "s" or $cmd == "sync" then
+    do_sync($2)
+else if $cmd == "c" or $cmd == "create" then
+    host_create($2, $3, $4, $5, $6)
+else if $cmd == "r" or $cmd == "read" or $cmd == "show" then
+    host_read($2)
+else if $cmd == "u" or $cmd == "update" then
+    host_update($2)
+else if $cmd == "d" or $cmd == "delete" then
+    host_delete($2)
+else if $cmd == "l" or $cmd == "list" then
+    host_list()
+else if $cmd == "t" or $cmd == "test" then
+    host_test($2)
+else if $cmd == "kc" or $cmd == "key_create" then
+    key_create($2, $3, $4)
+else if $cmd == "kr" or $cmd == "key_read" then
+    key_read($2)
+else if $cmd == "kd" or $cmd == "key_delete" then
+    key_delete($2)
+else if $cmd == "kl" or $cmd == "key_list" then
+    key_list()
+else if $cmd == "p" or $cmd == "perms" then
+    do_perms()
+else if $cmd == "pull" then
+    do_pull()
+else if $cmd == "push" then
+    do_push($2)
+else if $cmd == "start" then
+    do_start()
+else if $cmd == "stop" then
+    do_stop()
+else
+    print "Unknown command: ${cmd}"
+    help_short()
+end

@@ -1,0 +1,9 @@
+-- 10-path.mix — PATH setup
+--
+-- ~/.mix/bin/      shell-config-shipped scripts (sshm, etc).
+-- ~/.local/bin/    machine-local user binaries.
+-- $PATH            inherited (preserved at end).
+--
+-- User can override later from ~/.mixrc or ~/.myrc.mix.
+
+export PATH = "${HOME}/.mix/bin:${HOME}/.local/bin:" .. env("PATH")
