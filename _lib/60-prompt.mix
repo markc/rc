@@ -10,5 +10,5 @@ $LABEL = hostname()
 
 function prompt()
     $dir = replace(cwd(), env("HOME"), "~")
-    return "\e[1;${COLOR}m${LABEL}\e[0m \e[34m${dir}\e[0m "
+    return "\e[1;${COLOR}m${LABEL} ${dir}\e[0m "
 end
