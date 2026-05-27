@@ -9,6 +9,7 @@ $COLOR = "32"
 $LABEL = hostname()
 
 function prompt()
-    $dir = replace(cwd(), env("HOME"), "~")
+    -- "\~" escapes the leading-tilde lex-expansion (else "~" → $HOME)
+    $dir = replace(cwd(), env("HOME"), "\~")
     return "\e[1;${COLOR}m${LABEL} ${dir}\e[0m "
 end
