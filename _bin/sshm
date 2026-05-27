@@ -1,8 +1,8 @@
 #!/usr/bin/env mix
 -- sshm — SSH Manager for Mix
--- Port of ~/.rc/rcm (SSH host/key management, init, sync, git)
--- Runtime path: ~/.mix/bin/sshm  (installed once by hand; not repo-tracked)
--- The ~/.mix/ scaffold (~/.mixrc, _mixrc, _mixrc.d/) is hand-provisioned
+-- Port of ~/.sh/_bin/rcm (SSH host/key management, init, sync, git)
+-- Runtime path: ~/.rc/_bin/sshm  (PATH'd by ~/.rc/_lib/10-path.mix)
+-- The ~/.rc/ scaffold (~/.mixrc, _mixrc, _lib/) is hand-provisioned
 -- per ~/.cosmix/src/_doc/planned/2026-05-24-bash-to-mix-port.md §A0,
 -- independently of this script.
 
@@ -73,7 +73,7 @@ end
 -- ========== INIT ==========
 
 function mx_init()
-    -- The ~/.mix/ scaffold (~/.mixrc, _mixrc, _mixrc.d/) is hand-provisioned
+    -- The ~/.rc/ scaffold (~/.mixrc, _mixrc, _lib/) is hand-provisioned
     -- per ~/.cosmix/src/_doc/planned/2026-05-24-bash-to-mix-port.md §A0.
     -- sshm init only sets up ~/.ssh/ — keeps sshm self-contained and matches
     -- the strict-A5.4 untrack model (no templates ride along with sshm).
@@ -373,9 +373,9 @@ function do_sync($host)
         print "Sync completed"
         print ""
         print "If sshm isn't yet installed on ${host}, bootstrap it manually:"
-        print "  ssh ${host} 'mkdir -p ~/.mix/bin'"
-        print "  scp ~/.mix/bin/sshm ${host}:~/.mix/bin/sshm"
-        print "  ssh ${host} '~/.mix/bin/sshm init'"
+        print "  ssh ${host} 'mkdir -p ~/.rc/_bin'"
+        print "  scp ~/.rc/_bin/sshm ${host}:~/.rc/_bin/sshm"
+        print "  ssh ${host} '~/.rc/_bin/sshm init'"
     else
         print "Error: sync failed"
     end

@@ -1,6 +1,6 @@
 # RC — Mix Shell Configuration Toolkit
 
-Public, shareable Mix-shell scaffold. Cloned to `~/.mix/`. Companion to
+Public, shareable Mix-shell scaffold. Cloned to `~/.rc/`. Companion to
 [`markc/sh`](https://github.com/markc/sh) for bash.
 
 > **Status: alpha, under construction.** The primary dependency is the
@@ -26,33 +26,37 @@ bash.
 
 ```
 ~/.mixrc                                  user entry point (machine-local, NOT in git)
-   └─ source ~/.mix/_mixrc                public wrapper (this repo)
+   └─ source ~/.rc/_mixrc                 public wrapper (this repo)
          ├─ env $ostyp, $SUDO, $HOME      shell-foundational vars
-         └─ glob-load ~/.mix/_mixrc.d/*.mix  topic modules (NN-prefix ordering)
+         └─ glob-load ~/.rc/_lib/*.mix    topic modules (NN-prefix ordering)
 ```
 
 `~/.mixrc` is the user's personal trampoline — it sources `_mixrc`, then
 adds machine-local aliases/secrets/PATH extensions. The
-`_mixrc → _mixrc.d/` split mirrors `~/.sh/`'s `_shrc → _shrc.d/`
-discipline.
+`_mixrc → _lib/` split mirrors `~/.sh/`'s `_shrc → _shrc.d/` discipline.
 
 ## Layout
 
+The repo follows a three-directory taxonomy: **`_lib/`** for sourced
+modules, **`_bin/`** for PATH-exposed executables, **`_etc/`** for
+templates, examples, and opt-in config snippets (nothing under `_etc/`
+is sourced automatically).
+
 | Path | Purpose |
 |---|---|
-| `_mixrc` | Public wrapper. Sets `$ostyp`, `$SUDO`, `$HOME`; glob-loads `_mixrc.d/*.mix` |
-| `_mixrc.example` | Template to copy to `~/.mixrc` and edit per machine |
-| `_mixrc.d/10-path.mix` | PATH setup (`~/.mix/bin/` prepend) |
-| `_mixrc.d/20-aliases.mix` | Navigation, listing, common shortcuts |
-| `_mixrc.d/30-pkgmgr.mix` | Per-distro package manager wrappers (`i`/`r`/`u`/`s`) |
-| `_mixrc.d/40-ssh-hosts.mix` | SSH host shortcut aliases (DNS-independent) |
-| `_mixrc.d/50-tools.mix` | Agent / tooling shortcuts |
-| `_mixrc.d/60-prompt.mix` | Interactive REPL prompt (overridable `$LABEL` / `$COLOR`) |
-| `_mixrc.d/70-functions.mix` | Helper functions (`health`, `pwgen`, etc.) |
-| `bin/sshm` | SSH Manager — host/key management, init, sync, git |
+| `_mixrc` | Public wrapper. Sets `$ostyp`, `$SUDO`, `$HOME`; glob-loads `_lib/*.mix` |
+| `_lib/10-path.mix` | PATH setup (`~/.rc/_bin/` prepend) |
+| `_lib/20-aliases.mix` | Navigation, listing, common shortcuts |
+| `_lib/30-pkgmgr.mix` | Per-distro package manager wrappers (`i`/`r`/`u`/`s`) |
+| `_lib/40-ssh-hosts.mix` | SSH host shortcut aliases (DNS-independent) |
+| `_lib/50-tools.mix` | Agent / tooling shortcuts |
+| `_lib/60-prompt.mix` | Interactive REPL prompt (overridable `$LABEL` / `$COLOR`) |
+| `_lib/70-functions.mix` | Helper functions (`health`, `sc`, `es`, `newpw`, etc.) |
+| `_bin/sshm` | SSH Manager — host/key management, init, sync, git |
+| `_etc/_mixrc.example` | Template to copy to `~/.mixrc` and edit per machine |
 
-Topic modules are loaded in lexical order; the `NN-` prefix controls
-load sequence. Drop a new file in `_mixrc.d/` to extend.
+Topic modules in `_lib/` are loaded in lexical order; the `NN-` prefix
+controls load sequence. Drop a new file in `_lib/` to extend.
 
 ## Installation
 
@@ -63,10 +67,10 @@ cd ~/.cosmix/src && cargo install --path crates/cosmix-mix --root /opt/cosmix
 # (when the mix binary repo is published, the install step will simplify)
 
 # 2. Clone this repo:
-git clone https://github.com/markc/rc ~/.mix
+git clone https://github.com/markc/rc ~/.rc
 
 # 3. Seed your personal trampoline:
-cp ~/.mix/_mixrc.example ~/.mixrc
+cp ~/.rc/_etc/_mixrc.example ~/.mixrc
 # Edit ~/.mixrc — uncomment opt-in modules, set $LABEL / $COLOR, etc.
 
 # 4. Make mix your login shell (optional, when ready):

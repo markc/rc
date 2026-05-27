@@ -1,4 +1,4 @@
--- ~/.mix/_mixrc.example — template for ~/.mixrc (user-home Mix rc)
+-- ~/.rc/_etc/_mixrc.example — template for ~/.mixrc (user-home Mix rc)
 -- Copy to ~/.mixrc and edit. ~/.mixrc is machine-local — never sync or
 -- version it (it carries secrets, machine-specific PATH, host aliases).
 --
@@ -10,13 +10,12 @@
 -- intentionally not inherited — one user-edited file, not two.
 
 -- ─── Load the toolkit first ─────────────────────────────────────────
-source env("HOME") .. "/.mix/_mixrc"
+source env("HOME") .. "/.rc/_mixrc"
 
 -- ─── Opt-in modules (mirror ~/.myrc → ~/.sh/_shrc.d/*.sh pattern) ───
--- Uncomment per machine:
--- source env("HOME") .. "/.mix/_mixrc.d/server.mix"
--- source env("HOME") .. "/.mix/_mixrc.d/logs.mix"
--- source env("HOME") .. "/.mix/_mixrc.d/net.mix"
+-- Drop additional .mix files into ~/.rc/_lib/ (auto-globbed by _mixrc)
+-- or source machine-local opt-ins explicitly here:
+-- source env("HOME") .. "/path/to/extra.mix"
 
 -- ─── Secrets (may reset PATH internally — must come before PATH below) ─
 -- if is_file(env("HOME") .. "/.ns/_etc/secrets/secrets.mix") then

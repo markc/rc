@@ -1,5 +1,5 @@
 -- 30-pkgmgr.mix — per-distro package manager aliases.
--- Depends on $ostyp set in ~/.mix/_mixrc.
+-- Depends on $ostyp set in ~/.rc/_mixrc.
 
 if $ostyp == "cachyos" or $ostyp == "arch" then
     alias i = "paru -S --skipreview --noconfirm"

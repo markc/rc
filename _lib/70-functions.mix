@@ -16,7 +16,7 @@ function health()
     sh "ps aux --sort=-%cpu | head -6"
 end
 
--- systemctl wrapper (uses $SUDO set in ~/.mix/_mixrc)
+-- systemctl wrapper (uses $SUDO set in ~/.rc/_mixrc)
 function sc($action, $service)
     sh "${SUDO}systemctl ${action} ${service}"
 end
