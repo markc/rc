@@ -41,12 +41,11 @@ by what state your module needs from earlier ones.
 ## Install
 
 ```bash
-# 1. Install the mix binary at the canonical path /opt/cosmix/bin/mix.
-#    Until the daemon-stack deps are crates.io-published, mix builds
-#    against a sibling cosmix checkout (path-dep). Both clones needed:
-git clone https://github.com/markc/cosmix ~/.cosmix
-git clone https://github.com/markc/mix    ~/.mix
-cd ~/.mix/src && cargo install --path crates/cosmix-mix --root /opt/cosmix
+# 1. Install the mix binary at /opt/cosmix/bin/mix from the latest
+#    GitHub Release (x86_64-linux-gnu, glibc 2.39+):
+sudo install -d /opt/cosmix/bin
+curl -fsSL https://github.com/markc/mix/releases/latest/download/mix \
+  | sudo tee /opt/cosmix/bin/mix > /dev/null && sudo chmod 0755 /opt/cosmix/bin/mix
 
 # 2. Clone this repo:
 git clone https://github.com/markc/rc ~/.rc
@@ -58,6 +57,19 @@ cp ~/.rc/_etc/_mixrc.example ~/.mixrc
 # 4. Make mix your login shell (optional, when ready):
 echo /opt/cosmix/bin/mix | sudo tee -a /etc/shells
 chsh -s /opt/cosmix/bin/mix
+```
+
+### Build mix from source (developers)
+
+If you're hacking on the mix binary itself rather than just installing
+it, clone both [`markc/mix`](https://github.com/markc/mix) and
+[`markc/cosmix`](https://github.com/markc/cosmix) as siblings — mix
+path-deps into cosmix for the daemon-stack crates pre-crates.io-publish:
+
+```bash
+git clone https://github.com/markc/cosmix ~/.cosmix
+git clone https://github.com/markc/mix    ~/.mix
+cd ~/.mix/src && cargo install --path crates/cosmix-mix --root /opt/cosmix
 ```
 
 ## Status
