@@ -101,7 +101,7 @@ function ssh_init()
             sh "chmod 700 ${SSH}/${d}"
             print "Created ~/.ssh/${d}"
         end
-    next
+    end
 
     -- Create SSH config if missing
     if not is_file("${SSH}/config") then
@@ -234,7 +234,7 @@ function host_list()
                 else if starts_with($line, "IdentityFile ") then
                     $key = replace($line, "IdentityFile ", "")
                 end
-            next
+            end
             -- Pad fields for alignment
             $host = rpad($host, 15)
             $hostname = rpad($hostname, 17)
@@ -242,7 +242,7 @@ function host_list()
             $user = rpad($user, 10)
             print "${host} ${hostname} ${port} ${user} ${key}"
         end
-    next
+    end
 end
 
 function host_test($name)
@@ -286,7 +286,7 @@ function host_test($name)
                 $fail = $fail + 1
             end
         end
-    next
+    end
 
     print ""
     print "Total: ${total}  OK: ${success}  Failed: ${fail}"
@@ -356,7 +356,7 @@ function key_list()
         $basename = replace(basename($file), ".pub", "")
         $fingerprint = trim(sh "ssh-keygen -lf ${file}")
         print "${basename}  ${fingerprint}"
-    next
+    end
 end
 
 -- ========== SYNC ==========
@@ -451,13 +451,13 @@ function do_perms()
         if is_dir($d) then
             sh "chmod 700 ${d}"
         end
-    next
+    end
     $all_files = glob("${SSH}/**/*")
     for each $f in $all_files
         if is_file($f) then
             sh "chmod 600 ${f}"
         end
-    next
+    end
     sh "chmod 700 ${SSH}"
     print "Updated permissions for ~/.ssh"
 end
