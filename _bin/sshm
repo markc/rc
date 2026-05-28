@@ -22,7 +22,7 @@ function help_all()
     print ""
     print "SETUP"
     print "  sshm init                                       # Set up this machine"
-    print "  sshm sync HOST                                  # Deploy ~/.cosmix to remote"
+    print "  sshm sync HOST                                  # Push ~/.rc/ to remote (+ bootstrap mix if missing)"
     print ""
     print "HOST COMMANDS"
     print "  sshm create NAME IP [PORT] [USER] [KEYFILE]     # Save host"
@@ -367,18 +367,41 @@ function do_sync($host)
         return
     end
 
-    print "Syncing ~/.cosmix/ to ${host}:~/.cosmix/..."
-    sh "rsync -avz --exclude='.git' --exclude='target' ${MX}/ ${host}:~/.cosmix/"
-    if $rc == 0 then
-        print "Sync completed"
-        print ""
-        print "If sshm isn't yet installed on ${host}, bootstrap it manually:"
-        print "  ssh ${host} 'mkdir -p ~/.rc/_bin'"
-        print "  scp ~/.rc/_bin/sshm ${host}:~/.rc/_bin/sshm"
-        print "  ssh ${host} '~/.rc/_bin/sshm init'"
-    else
-        print "Error: sync failed"
+    -- Push ~/.rc/ (the scaffold), nothing more. Dev artifacts and source
+    -- live on the canonical cachyos box; remotes get the rc scaffold only.
+    -- The dedicated deploy_*.mix scripts in cosmix handle daemon binaries.
+    $RC = "${HOME}/.rc"
+    print "Syncing ~/.rc/ to ${host}:~/.rc/..."
+    sh "rsync -avz --delete --exclude='.git' --exclude='_journal' --exclude='_doc' ${RC}/ ${host}:~/.rc/"
+    if $rc != 0 then
+        print "Error: rsync of ~/.rc/ failed"
+        return
     end
+
+    -- Bootstrap /opt/cosmix/bin/mix on the remote if missing. Interim
+    -- procedure until mix has a proper package / release artifact —
+    -- scp the local binary and chmod 0755. Requires that the ssh user
+    -- on the remote can write to /opt/cosmix/bin/ (i.e. is root, or
+    -- /opt/cosmix/bin/ is pre-created with appropriate perms).
+    $remote_mix = trim(sh "ssh ${host} 'test -x /opt/cosmix/bin/mix && echo yes || echo no' 2>/dev/null")
+    if $remote_mix == "yes" then
+        print "${host} already has /opt/cosmix/bin/mix"
+    else
+        if is_file("/opt/cosmix/bin/mix") then
+            print "Bootstrapping /opt/cosmix/bin/mix on ${host}..."
+            sh "ssh ${host} 'mkdir -p /opt/cosmix/bin'"
+            sh "scp -q /opt/cosmix/bin/mix ${host}:/opt/cosmix/bin/mix"
+            sh "ssh ${host} 'chmod 0755 /opt/cosmix/bin/mix'"
+            print "Mix binary installed on ${host}"
+            print "To make it the login shell:"
+            print "  ssh ${host} 'echo /opt/cosmix/bin/mix | tee -a /etc/shells && chsh -s /opt/cosmix/bin/mix'"
+        else
+            print "Warning: /opt/cosmix/bin/mix not present locally — skipping bootstrap"
+            print "         Build from https://github.com/markc/cosmix first"
+        end
+    end
+
+    print "Sync completed"
 end
 
 -- ========== GIT ==========
