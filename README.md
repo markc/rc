@@ -1,104 +1,66 @@
-# RC — Mix Shell Configuration Toolkit
+# Mix shell rc scaffold
 
-Public, shareable Mix-shell scaffold. Cloned to `~/.rc/`. Companion to
+The rc-files (aliases, functions, prompt, ssh shortcuts, package-manager
+wrappers, helper binaries) that turn the `mix` binary into a usable
+interactive login shell. Cloned to `~/.rc/`. Mix-side analogue of
 [`markc/sh`](https://github.com/markc/sh) for bash.
 
-> **Status: alpha, under construction.** The primary dependency is the
-> **mix** binary (`/opt/cosmix/bin/mix`), which is itself under
-> construction at [`cosmix`](https://github.com/markc/cosmix) (crates
-> `cosmix-mix` and `cosmix-lib-mix`). Until the `mix` binary repo is
-> carved out as its own public release, this scaffold may break in
-> lockstep with binary changes. See the
-> [repo-split plan](https://github.com/markc/cosmix/blob/main/src/_doc/planned/2026-05-24-repo-split-mix-mixrc-cos.md)
-> for the four-way decomposition (`mix` / `rc` / `cos` / `cosmix`).
-
-## What this is
-
-Mix is a pure-Rust scripting language — a best-of mix of common
-scripting languages — with native **AMP (Agent Mesh Protocol)** IPC,
-intended as a daily-driver replacement for bash on Cosmix hosts. This
-repo is the rc-files (aliases, functions, prompt, ssh shortcuts,
-package-manager wrappers) that turn the `mix` binary into a useful
-interactive shell — the Mix-side analogue of how `~/.sh/` augments
-bash.
+This repo contains **only the startup system** — no language, no
+runtime. The `mix` binary itself comes from the
+[`markc/mix`](https://github.com/markc/mix) repo (currently still inside
+the [`markc/cosmix`](https://github.com/markc/cosmix) monorepo as crates
+`cosmix-mix` and `cosmix-lib-mix`, pending carve-out).
 
 ## Load chain
 
 ```
-~/.mixrc                                  user entry point (machine-local, NOT in git)
-   └─ source ~/.rc/_mixrc                 public wrapper (this repo)
-         ├─ env $ostyp, $SUDO, $HOME      shell-foundational vars
-         └─ glob-load ~/.rc/_lib/*.mix    topic modules (NN-prefix ordering)
+~/.mixrc                                user trampoline (machine-local, NOT in git)
+  └─ source ~/.rc/_mixrc                public wrapper (this repo)
+       ├─ sets $ostyp, $SUDO, $HOME     foundational env
+       └─ globs ~/.rc/_lib/*.mix        topic modules, lexical (NN-) order
 ```
 
-`~/.mixrc` is the user's personal trampoline — it sources `_mixrc`, then
-adds machine-local aliases/secrets/PATH extensions. The
-`_mixrc → _lib/` split mirrors `~/.sh/`'s `_shrc → _shrc.d/` discipline.
+`~/.mixrc` is the personal trampoline — sources `_mixrc`, then adds
+per-machine PATH, secrets, host aliases. Keep it out of git.
 
 ## Layout
 
-The repo follows a three-directory taxonomy: **`_lib/`** for sourced
-modules, **`_bin/`** for PATH-exposed executables, **`_etc/`** for
-templates, examples, and opt-in config snippets (nothing under `_etc/`
-is sourced automatically).
+| Path | Sourced? | PATH'd? | Purpose |
+|---|---|---|---|
+| `_mixrc` | yes (by `~/.mixrc`) | — | Foundational env; glob-loads `_lib/*.mix` |
+| `_lib/*.mix` | yes (auto) | — | Topic modules; NN- prefix controls load order |
+| `_bin/*` | — | yes | Executables (`sshm`, …) |
+| `_etc/*` | no (opt-in only) | — | Templates and examples to copy/source explicitly |
 
-| Path | Purpose |
-|---|---|
-| `_mixrc` | Public wrapper. Sets `$ostyp`, `$SUDO`, `$HOME`; glob-loads `_lib/*.mix` |
-| `_lib/10-path.mix` | PATH setup (`~/.rc/_bin/` prepend) |
-| `_lib/20-aliases.mix` | Navigation, listing, common shortcuts |
-| `_lib/30-pkgmgr.mix` | Per-distro package manager wrappers (`i`/`r`/`u`/`s`) |
-| `_lib/40-ssh-hosts.mix` | SSH host shortcut aliases (DNS-independent) |
-| `_lib/50-tools.mix` | Agent / tooling shortcuts |
-| `_lib/60-prompt.mix` | Interactive REPL prompt (overridable `$LABEL` / `$COLOR`) |
-| `_lib/70-functions.mix` | Helper functions (`health`, `sc`, `es`, `newpw`, etc.) |
-| `_bin/sshm` | SSH Manager — host/key management, init, sync, git |
-| `_etc/_mixrc.example` | Template to copy to `~/.mixrc` and edit per machine |
+Drop new `NN-name.mix` files into `_lib/` to extend; pick the NN- bucket
+by what state your module needs from earlier ones.
 
-Topic modules in `_lib/` are loaded in lexical order; the `NN-` prefix
-controls load sequence. Drop a new file in `_lib/` to extend.
-
-## Installation
+## Install
 
 ```bash
-# 1. Install the mix binary (currently from the cosmix monorepo):
+# 1. Install the mix binary at the canonical path /opt/cosmix/bin/mix.
+#    Until the mix repo is carved out, install from cosmix:
 git clone https://github.com/markc/cosmix ~/.cosmix
 cd ~/.cosmix/src && cargo install --path crates/cosmix-mix --root /opt/cosmix
-# (when the mix binary repo is published, the install step will simplify)
 
 # 2. Clone this repo:
 git clone https://github.com/markc/rc ~/.rc
 
 # 3. Seed your personal trampoline:
 cp ~/.rc/_etc/_mixrc.example ~/.mixrc
-# Edit ~/.mixrc — uncomment opt-in modules, set $LABEL / $COLOR, etc.
+# edit ~/.mixrc — set $LABEL / $COLOR, add machine-local bits.
 
 # 4. Make mix your login shell (optional, when ready):
+echo /opt/cosmix/bin/mix | sudo tee -a /etc/shells
 chsh -s /opt/cosmix/bin/mix
 ```
 
-`~/.mixrc` is intentionally **not** part of this repo — it carries
-machine-local content (PATH extensions, secrets, host-specific aliases).
-Keep it out of git.
+## Status
 
-## Origins
-
-The name **Mix** comes from being a mix of common scripting languages:
-
-- The daily-driver ergonomics of **bash** — pipelines, aliases, `$VAR`
-  expansion, command-as-first-class.
-- The universal-message-port idiom of **ARexx** — the AmigaOS scripting
-  layer where every application exposed a named port that any script
-  could address. Mix's `send`/`address`/`emit`/`on … do` forms are the
-  modern AMP-over-mesh equivalent.
-- The readable, beginner-friendly form of early **BASIC** dialects —
-  `if / then / end`, `for / each / in`, plain control flow without
-  punctuation noise.
-
-The pure-Rust evaluator lives in the
-[`cosmix`](https://github.com/markc/cosmix) monorepo under crates
-`cosmix-mix` (binary, REPL, runner) and `cosmix-lib-mix` (lexer, parser,
-evaluator, builtins) until it earns its own carve-out.
+Alpha, under construction. The `mix` binary it depends on is itself
+under active development, so this scaffold can break in lockstep with
+binary changes. Repo-split plan:
+`~/.cosmix/src/_doc/planned/2026-05-24-repo-split-mix-mixrc-cos.md`.
 
 ## License
 
