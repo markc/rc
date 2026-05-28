@@ -397,7 +397,7 @@ function do_sync($host)
             print "  ssh ${host} 'echo /opt/cosmix/bin/mix | tee -a /etc/shells && chsh -s /opt/cosmix/bin/mix'"
         else
             print "Warning: /opt/cosmix/bin/mix not present locally — skipping bootstrap"
-            print "         Build from https://github.com/markc/cosmix first"
+            print "         Build from https://github.com/markc/mix first (needs ~/.cosmix sibling checkout pre-crates.io-publish)"
         end
     end
 

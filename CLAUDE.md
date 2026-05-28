@@ -6,7 +6,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 `~/.rc/` is the **public Mix-shell rc scaffold** (aliases, functions, prompt, ssh shortcuts, package-manager wrappers) that turns the `mix` binary into a usable interactive shell. It is the Mix-side analogue of `~/.sh/` (markc/sh) for bash. There is no build step and no test suite — verification is "source it in a fresh Mix shell and watch nothing explode."
 
-The `mix` binary itself lives in the cosmix monorepo (`~/.cosmix/src/crates/cosmix-mix` and `cosmix-lib-mix`) and is under active development; this scaffold can break in lockstep with binary changes.
+The `mix` binary itself lives at [`github.com/markc/mix`](https://github.com/markc/mix) (cloned to `~/.mix/`) as `cosmix-mix` (binary) + `cosmix-lib-mix` (interpreter library), carved out of the cosmix monorepo on 2026-05-28. It is under active development; this scaffold can break in lockstep with binary changes.
 
 ## Architecture
 
@@ -44,7 +44,7 @@ To extend: drop a new `NN-name.mix` into `_lib/`. Pick the NN- bucket by what st
 
 ## Mix-language gotchas seen in this codebase
 
-These have already bitten — preserve the workarounds, and if you trip over a new one, prefer fixing the underlying bug in `~/.cosmix/src/crates/cosmix-lib-mix/` over adding more workarounds here.
+These have already bitten — preserve the workarounds, and if you trip over a new one, prefer fixing the underlying bug in `~/.mix/src/crates/cosmix-lib-mix/` over adding more workarounds here.
 
 - **Sigil variables must be assigned before any conditional read.** Mix treats an undefined `$X` read as a runtime error, so the defensive `if $X == nil then ...` form does *not* work for first-time defaults. Assign the default unconditionally first (see `_lib/60-prompt.mix:8-9`).
 - **Leading `~` in a string literal expands to `$HOME`.** To emit a literal tilde (e.g. when collapsing a path for the prompt), escape it as `"\~"` (see `_lib/60-prompt.mix:13`).
@@ -78,6 +78,7 @@ If `/opt/cosmix/bin/mix` is missing, the scaffold cannot be tested — say so lo
 
 ## Related repos
 
-- [`markc/cosmix`](https://github.com/markc/cosmix) — the `mix` binary and library crates (`cosmix-mix`, `cosmix-lib-mix`).
+- [`markc/mix`](https://github.com/markc/mix) — the `mix` binary (`cosmix-mix`) and interpreter library (`cosmix-lib-mix`), carved out of cosmix on 2026-05-28.
+- [`markc/cosmix`](https://github.com/markc/cosmix) — the daemon-stack crates `mix` builds against pre-crates.io-publish (`cosmix-lib-amp`, `cosmix-lib-client`, `cosmix-lib-config`, `cosmix-lib-daemon`, `cosmix-lib-props`).
 - [`markc/sh`](https://github.com/markc/sh) — bash equivalent of this repo.
 - Repo-split plan: `~/.cosmix/src/_doc/planned/2026-05-24-repo-split-mix-mixrc-cos.md`.

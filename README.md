@@ -7,9 +7,12 @@ interactive login shell. Cloned to `~/.rc/`. Mix-side analogue of
 
 This repo contains **only the startup system** — no language, no
 runtime. The `mix` binary itself comes from the
-[`markc/mix`](https://github.com/markc/mix) repo (currently still inside
-the [`markc/cosmix`](https://github.com/markc/cosmix) monorepo as crates
-`cosmix-mix` and `cosmix-lib-mix`, pending carve-out).
+[`markc/mix`](https://github.com/markc/mix) repo, carved out of
+[`markc/cosmix`](https://github.com/markc/cosmix) on 2026-05-28. Until
+the daemon-stack deps are crates.io-published (`cosmix-lib-amp`,
+`cosmix-lib-client`, `cosmix-lib-config`, `cosmix-lib-daemon`,
+`cosmix-lib-props`), building `mix` requires the cosmix repo as a
+sibling checkout — see install steps below.
 
 ## Load chain
 
@@ -39,9 +42,11 @@ by what state your module needs from earlier ones.
 
 ```bash
 # 1. Install the mix binary at the canonical path /opt/cosmix/bin/mix.
-#    Until the mix repo is carved out, install from cosmix:
+#    Until the daemon-stack deps are crates.io-published, mix builds
+#    against a sibling cosmix checkout (path-dep). Both clones needed:
 git clone https://github.com/markc/cosmix ~/.cosmix
-cd ~/.cosmix/src && cargo install --path crates/cosmix-mix --root /opt/cosmix
+git clone https://github.com/markc/mix    ~/.mix
+cd ~/.mix/src && cargo install --path crates/cosmix-mix --root /opt/cosmix
 
 # 2. Clone this repo:
 git clone https://github.com/markc/rc ~/.rc
