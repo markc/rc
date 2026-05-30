@@ -1,0 +1,40 @@
+#!/usr/bin/env mix
+-- mx — run a command on a remote mix-login-shell node with the remote's
+-- ~/.mixrc loaded (aliases + toolkit PATH). The mix twin of `sx` (bash -ci),
+-- pointed at mix-shell nodes: it drives the remote through `mix -i -c`, so
+-- remote aliases (e.g. `ll`, `df`) and toolkit PATH resolve — unlike a plain
+-- `ssh host cmd`, which since mix 0.5.0 dispatches commands but without rc.
+--
+--   mx <host> <command...>          # host in ~/.ssh/config
+--
+-- Builds:  ssh <host> -q "mix -i -c '<command>'"
+-- The remote login-shell `mix -c` dispatches the inner `mix -i -c` (resolved
+-- to the node's binary via current_exe), which sources ~/.mixrc then runs the
+-- command. Output is captured then printed (no live stream / tty); for an
+-- interactive remote program run `ssh host -t "mix -i -c '...'"` by hand.
+
+$argv = args()
+if length($argv) < 2 then
+  print "Usage: mx <host> <command...>   (host in ~/.ssh/config; runs remote `mix -i -c`)"
+  exit(1)
+end
+
+$host = $argv[0]
+$cmd = $argv[1]
+$i = 2
+while $i < length($argv) do
+  $cmd = $cmd .. " " .. $argv[$i]
+  $i = $i + 1
+end
+
+-- Nested quoting: shell_quote wraps <cmd> as one arg to the inner `mix -i -c`,
+-- then the whole `mix -i -c '<cmd>'` is shell_quote'd again as one arg to ssh.
+$remote = "mix -i -c " .. shell_quote($cmd)
+$r = run_rc("ssh " .. shell_quote($host) .. " -q " .. shell_quote($remote))
+if $r["stdout"] != "" then
+  print($r["stdout"])
+end
+if $r["stderr"] != "" then
+  eprint($r["stderr"])
+end
+exit($r["rc"])
