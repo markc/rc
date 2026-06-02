@@ -1,9 +1,52 @@
--- 10-path.mix — PATH setup
+-- 10-path.mix — PATH setup + dedup/filter helpers
 --
 -- ~/.rc/_bin/      shell-config-shipped scripts (sshm, etc).
 -- ~/.local/bin/    machine-local user binaries.
 -- $PATH            inherited (preserved at end).
 --
--- User can override later from ~/.mixrc or ~/.myrc.mix.
+-- User can override later from ~/.mixrc or ~/.myrc.mix. Because the
+-- toolkit glob runs *before* ~/.mixrc's own PATH block, both layers
+-- prepend overlapping dirs — so we expose path_clean()/path_drop() for
+-- the machine rc to call as its final step. What to drop (perl, merged
+-- /bin /sbin, …) is machine/distro policy and lives in ~/.mixrc, not
+-- here — this module stays distro-neutral.
 
-export PATH = "${HOME}/.rc/_bin:${HOME}/.local/bin:" .. env("PATH")
+-- path_clean($p) — split a PATH string on ":", drop empty + duplicate
+-- segments keeping first occurrence, rejoin. List membership is done via
+-- substring test on a ":"-fenced accumulator because Mix's contains() is
+-- a substring op and List == List is always false.
+function path_clean($p)
+    $seen = ":"
+    $out = ""
+    for each $d in split($p, ":")
+        if not is_empty($d) and not contains($seen, ":" .. $d .. ":") then
+            $seen = $seen .. $d .. ":"
+            if is_empty($out) then
+                $out = $d
+            else
+                $out = $out .. ":" .. $d
+            end
+        end
+    end
+    return $out
+end
+
+-- path_drop($p, $deny) — remove every PATH segment listed in $deny (a
+-- ":"-separated string), e.g. path_drop(env("PATH"), "/bin:/sbin").
+-- Uses the same ":"-fenced substring membership test as path_clean().
+function path_drop($p, $deny)
+    $fence = ":" .. $deny .. ":"
+    $out = ""
+    for each $d in split($p, ":")
+        if not is_empty($d) and not contains($fence, ":" .. $d .. ":") then
+            if is_empty($out) then
+                $out = $d
+            else
+                $out = $out .. ":" .. $d
+            end
+        end
+    end
+    return $out
+end
+
+export PATH = path_clean("${HOME}/.rc/_bin:${HOME}/.local/bin:" .. env("PATH"))
