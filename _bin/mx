@@ -1,4 +1,4 @@
-#!/usr/bin/env mix
+#!/opt/cosmix/bin/mix
 -- mx — run a command on a remote mix-login-shell node with the remote's
 -- ~/.mixrc loaded (aliases + toolkit PATH). The mix twin of `sx` (bash -ci),
 -- pointed at mix-shell nodes: it drives the remote through `mix -i -c`, so
@@ -24,7 +24,7 @@ end
 $host = $argv[0]
 $cmd = $argv[1]
 $i = 2
-while $i < length($argv) do
+while $i < length($argv)
   $cmd = $cmd .. " " .. $argv[$i]
   $i = $i + 1
 end

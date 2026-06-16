@@ -1,0 +1,20 @@
+#!/opt/cosmix/bin/mix
+-- ramsum — sum RSS for processes matching a pattern.
+-- Bareword-callable twin of the old function ramsum($pat): `ramsum <pat>`
+-- takes the pattern as a bare first arg (no quotes), shell_quote()d before
+-- it reaches grep. Lives on PATH (~/.rc/_bin, prepended in ~/.mixrc) so the
+-- mix shell dispatches it as a command. The ps invocation is inlined so it
+-- does NOT depend on the bash `ram` alias being the live shell.
+
+$argv = args()
+if length($argv) < 1 then
+  print "Usage: ramsum <pattern>"
+  exit(1)
+end
+$pat = $argv[0]
+
+$awk = 'awk \'{print $0} {sum+=$1} END{printf "=========\n%.3f GB\n", sum/1048576}\''
+$ps  = "ps -eo rss:10,vsz:10,%cpu:5,cmd --sort=rss | grep -v '^\\s\\+0' | cut -c -79"
+$r = run_rc($ps .. " | grep " .. shell_quote($pat) .. " | grep -v grep | " .. $awk)
+print($r.stdout)
+exit($r.rc)

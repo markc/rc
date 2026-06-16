@@ -12,12 +12,21 @@ alias se = "sudo nano -t -x -c"
 
 -- System tools
 alias ff = "fastfetch --logo none"
+-- p <pat>: grep the full process list (the pattern is appended). Port of ~/.sh `p`.
+alias p = "ps auxxww | grep -v grep | grep"
 
 -- Monitoring
 alias ports = "ss -tuln"
 alias procs = "ps aux --sort=-%cpu | head -20"
+-- ram: all processes by RSS (drops zero-RSS kernel threads), truncated to
+-- 79 cols. Port of the ~/.sh GNU `ram`. Single-quoted raw so the grep
+-- pattern "^\s\+0" reaches /bin/sh verbatim. Sibling: `ramsum <pat>`.
+alias ram = 'ps -eo rss:10,vsz:10,%cpu:5,cmd --sort=rss | grep -v "^\s\+0" | cut -c -79'
 alias disk = "df -h"
 alias mem = "free -h"
+-- temp: CPU/board temps via lm_sensors, falling back to the thermal_zone
+-- sysfs glob. Port of ~/.sh `temp`.
+alias temp = "sensors 2>/dev/null || cat /sys/class/thermal/thermal_zone*/temp 2>/dev/null"
 alias sysinfo = "uname -a && uptime && free -h && df -h /"
 alias logs = "journalctl -f"
 alias l = "journalctl -f"

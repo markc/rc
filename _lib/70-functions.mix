@@ -21,12 +21,28 @@ function sc($action, $service)
     sh "${SUDO}systemctl ${action} ${service}"
 end
 
--- Edit personal rc and reload from the trampoline
-function es()
-    sh "nano -t -x -c ~/.myrc.mix"
-    source env("HOME") .. "/.mixrc"
-    print "Reloaded ~/.mixrc"
+-- Edit the personal rc (~/.mixrc) and reload it in-place. Exposed as the
+-- bareword `es` via the alias below: an alias whose body is a Mix call runs
+-- in the REPL process (not a subshell), so the `source` reload lands in the
+-- live session — aliases/functions/exports re-register globally even from
+-- inside a function. nano runs via run_stream for an inherited TTY; `sh`/
+-- `run` capture stdio and would break the interactive editor.
+function edit_shell()
+    $rc = env("HOME") .. "/.mixrc"
+    run_stream(["nano", "-t", "-x", "-c", $rc])
+    -- Syntax-check the edit in a child mix BEFORE sourcing, so a typo warns
+    -- and leaves the live session intact instead of throwing a parse error
+    -- on reload. --check parses without executing; errors land on stderr.
+    $chk = run_rc("/opt/cosmix/bin/mix --check " .. shell_quote($rc))
+    if $chk.rc == 0 then
+        source $rc
+        print "Reloaded ~/.mixrc"
+    else
+        print "✗ ~/.mixrc has a syntax error — NOT reloaded:"
+        print trim($chk.stderr)
+    end
 end
+alias es = "edit_shell()"
 
 -- Generate a random password (uses Mix builtin, not /dev/urandom shell-out)
 function newpw($len)

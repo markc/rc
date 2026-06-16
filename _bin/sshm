@@ -1,4 +1,4 @@
-#!/usr/bin/env mix
+#!/opt/cosmix/bin/mix
 -- sshm — SSH Manager for Mix
 -- Port of ~/.sh/_bin/rcm (SSH host/key management, init, sync, git)
 -- Runtime path: ~/.rc/_bin/sshm  (PATH'd by ~/.rc/_lib/10-path.mix)

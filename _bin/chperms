@@ -1,0 +1,224 @@
+#!/opt/cosmix/bin/mix
+-- chperms — fix NS 4.0 vhost permissions on a REMOTE vnode.
+--
+-- Usage: chperms [-n] <vnode> [<vhost>|all]            (default: all)
+--   chperms cachyos.kanary.org                     fix every vhost on the node
+--   chperms cachyos.kanary.org markc.kanary.org    fix one vhost
+--   chperms -n cachyos.kanary.org                  dry run (print, don't apply)
+--
+-- This runs LOCALLY (markc) and drives the remote node over ssh as root. ALL
+-- getent lookups + chmod/chown run ON THE REMOTE, so the cosmix-webd group GID
+-- is resolved live per-node — it is NOT hardwired (Debian/Arch/CachyOS each
+-- allocate it differently; OSTYPE is a bash-only var that isn't even exported,
+-- so `getent group` on the target is the only authoritative source).
+--
+-- The vnode arg is an ssh target; ~/.ssh/config maps it to root@<node>.
+-- NS 4.0 layout: _doc ns4-server-class-spec.md §3. Sibling: ~/.ns/_bin/chperms
+-- (the on-node NS 3.0 variant, dispatched via `ns <vnode> chperms`).
+
+$VPATH  = "/srv"          -- per-domain vhost root (NS 4.0 §3.1)
+$WEBGRP = "cosmix-webd"   -- web group; its GID is resolved live on the remote
+
+-- ========== usage ==========
+
+function usage()
+    print "chperms — fix NS 4.0 vhost permissions on a remote vnode"
+    print ""
+    print "Usage: chperms [-n] <vnode> [<vhost>|all]            (default: all)"
+    print ""
+    print "  chperms cachyos.kanary.org                     fix every vhost on the node"
+    print "  chperms cachyos.kanary.org markc.kanary.org    fix a single vhost"
+    print "  chperms -n cachyos.kanary.org                  dry run (print, don't apply)"
+    print ""
+    print "The vnode is an ssh target (root@<node> via ~/.ssh/config). getent +"
+    print "chmod/chown all run on the REMOTE node; the cosmix-webd GID is resolved"
+    print "there, never hardwired."
+end
+
+-- ========== remote helpers ==========
+
+-- Resolve the cosmix-webd GID on the target node (authoritative per-node).
+function remote_web_gid($host)
+    $r = ssh_run($host, "getent group " .. $WEBGRP)
+    if not $r.ok or trim($r.stdout) == "" then
+        eprint "ERROR: group " .. $WEBGRP .. " not found on " .. $host .. " (ssh: " .. trim($r.stderr) .. ")"
+        exit(5)
+    end
+    $parts = split(trim($r.stdout), ":")   -- name:x:GID:members
+    return to_number($parts[2])
+end
+
+-- Parse `getent passwd` into one map per vhost owner (home == /srv/<domain>).
+-- A vhost home is exactly one component below /srv — split "/srv/x" yields
+-- ["", "srv", "x"]; deeper paths like /srv/x/y are not vhost roots.
+function parse_vhosts($pwout)
+    $rows = []
+    for each $ln in split($pwout, "\n")
+        $p = split($ln, ":")
+        if length($p) >= 6 then
+            $home = $p[5]
+            $hp = split($home, "/")
+            if length($hp) == 3 and $hp[1] == "srv" and $hp[2] != "" then
+                push($rows, {
+                  vhost: $hp[2],
+                  uid:   to_number($p[2]),
+                  gid:   to_number($p[3]),
+                  home:  $home
+                })
+            end
+        end
+    end
+    return $rows
+end
+
+-- ========== permission rules (NS 4.0 §3.3) ==========
+
+-- Build the ordered shell command list that fixes one vhost. Paths are DNS
+-- vhost names (no shell metacharacters), so no quoting is needed; missing
+-- subtrees are tolerated with `test -d ... && ... || true`.
+function build_cmds($v, $wgid)
+    $u      = $v.home
+    $own    = to_string($v.uid) .. ":" .. to_string($v.gid)
+    $webown = to_string($v.uid) .. ":" .. to_string($wgid)
+    $web    = $u .. "/web"
+    $msg    = $u .. "/msg"
+    $c = []
+
+    -- Baseline: owner owns the whole tree; dirs 0750, files 0640.
+    push($c, "chown -R " .. $own .. " " .. $u)
+    push($c, "find " .. $u .. " -type d -exec chmod 0750 {} +")
+    push($c, "find " .. $u .. " -type f -exec chmod 0640 {} +")
+
+    -- Vhost root: root-owned for non-sysadm (>1000) so a customer cannot
+    -- rename/unlink their own vhost root; world-traversable so webd can enter.
+    if $v.uid > 1000 then
+        push($c, "chown 0:0 " .. $u)
+    end
+    push($c, "chmod 0755 " .. $u)
+
+    -- web/ subtree: group = cosmix-webd so webd reads handlers + serves public
+    -- via group membership while the per-domain user owns the files.
+    push($c, "test -d " .. $web .. " && chown -R " .. $webown .. " " .. $web .. " || true")
+    push($c, "test -d " .. $web .. " && chmod 0755 " .. $web .. " || true")
+
+    -- app/ (handlers + public docroot): setgid dirs, group-read, never world.
+    push($c, "test -d " .. $web .. "/app && find " .. $web .. "/app -type d -exec chmod 2750 {} + || true")
+
+    -- data/ (per-vhost cms.db + uploads): webd writes -> group-writable+setgid.
+    push($c, "test -d " .. $web .. "/data && find " .. $web .. "/data -type d -exec chmod 2770 {} + || true")
+    push($c, "test -d " .. $web .. "/data && find " .. $web .. "/data -type f -exec chmod 0660 {} + || true")
+
+    -- log/ (webd writes the access log): group-writable + setgid.
+    push($c, "test -d " .. $web .. "/log && chmod 2770 " .. $web .. "/log || true")
+
+    -- run/ tmp/ (worker socket / scratch): setgid, group-read.
+    push($c, "test -d " .. $web .. "/run && chmod 2750 " .. $web .. "/run || true")
+    push($c, "test -d " .. $web .. "/tmp && chmod 2750 " .. $web .. "/tmp || true")
+
+    -- msg/ (maild Maildir): owner-private, no web group reach.
+    push($c, "test -d " .. $msg .. " && chown -R " .. $own .. " " .. $msg .. " || true")
+    push($c, "test -d " .. $msg .. " && find " .. $msg .. " -type d -exec chmod 0750 {} + || true")
+    push($c, "test -d " .. $msg .. " && find " .. $msg .. " -type f -exec chmod 0640 {} + || true")
+
+    return $c
+end
+
+-- ========== apply ==========
+
+-- Returns "ok" | "skip" | "fail".
+function apply($host, $v, $wgid, $dry)
+    if $v.uid < 1000 then
+        eprint "SKIP " .. $v.vhost .. ": uid " .. to_string($v.uid) .. " < 1000 (not a customer vhost)"
+        return "skip"
+    end
+
+    $cmds = build_cmds($v, $wgid)
+    print "==> " .. $v.vhost .. "  (" .. to_string($v.uid) .. ":" .. to_string($v.gid) .. ", web-grp " .. to_string($wgid) .. ")  " .. $v.home
+
+    if $dry then
+        for each $c in $cmds
+            print "    " .. $c
+        end
+        return "ok"
+    end
+
+    $batch = join($cmds, " ; ")
+    $r = ssh_run($host, "/bin/sh -c " .. shell_quote($batch))
+    if $r.ok then
+        print "    done"
+        return "ok"
+    end
+    eprint "    FAILED (exit " .. to_string($r.exit_code) .. "): " .. trim($r.stderr)
+    return "fail"
+end
+
+-- ========== main ==========
+
+$ALL = args()
+$want_help = any($ALL, fn($a) = $a == "-h" or $a == "--help")
+$DRY       = any($ALL, fn($a) = $a == "-n" or $a == "--dry-run")
+$pos       = filter($ALL, fn($a) = not starts_with($a, "-"))
+
+if $want_help or length($pos) == 0 then
+    usage()
+    exit(0)
+end
+
+$HOST = $pos[0]
+$ARG = "all"
+if length($pos) >= 2 then
+    $ARG = $pos[1]
+end
+
+-- Resolve everything on the remote node.
+$WGID = remote_web_gid($HOST)
+
+$pres = ssh_run($HOST, "getent passwd")
+if not $pres.ok then
+    eprint "ERROR: getent passwd failed on " .. $HOST .. ": " .. trim($pres.stderr)
+    exit(6)
+end
+
+$vhosts = parse_vhosts($pres.stdout)
+
+if $ARG != "all" then
+    $sel = filter($vhosts, fn($v) = $v.vhost == $ARG)
+    if length($sel) == 0 then
+        eprint "ERROR: no vhost user with home " .. $VPATH .. "/" .. $ARG .. " on " .. $HOST
+        exit(7)
+    end
+    $vhosts = $sel
+end
+
+if length($vhosts) == 0 then
+    print "No vhosts found under " .. $VPATH .. " on " .. $HOST
+    exit(0)
+end
+
+$tag = ""
+if $DRY then
+    $tag = " (dry run)"
+end
+print "chperms " .. $HOST .. $tag .. " — " .. to_string(length($vhosts)) .. " vhost(s)"
+print ""
+
+$ok = 0
+$skipped = 0
+$failed = 0
+for each $v in $vhosts
+    $st = apply($HOST, $v, $WGID, $DRY)
+    if $st == "ok" then
+        $ok = $ok + 1
+    else if $st == "skip" then
+        $skipped = $skipped + 1
+    else
+        $failed = $failed + 1
+    end
+end
+
+print ""
+print "Host " .. $HOST .. ": " .. to_string($ok) .. " ok, " .. to_string($skipped) .. " skipped, " .. to_string($failed) .. " failed" .. $tag
+
+if $failed > 0 then
+    exit(1)
+end

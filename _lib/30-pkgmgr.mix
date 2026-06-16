@@ -6,8 +6,11 @@ if $ostyp == "cachyos" or $ostyp == "arch" then
     alias r = "paru -Rns"
     alias s = "paru -Ss"
     alias u = "sudo pacman -Syu --noconfirm"
+    alias ua = "paru -Sua --noconfirm --skipreview"
     alias uu = "paru -Syu --noconfirm --skipreview"
+    alias uc = "paru -Syu --noconfirm --skipreview && paru -Scc --noconfirm && paru -c --noconfirm"
     alias lspkg = "paru -Qs"
+    alias edpkg = "sudo nano -t -x -c /etc/pacman.conf"
 else if $ostyp == "alpine" then
     alias i = "sudo apk add"
     alias r = "sudo apk del"

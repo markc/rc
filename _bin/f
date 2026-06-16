@@ -1,0 +1,14 @@
+#!/opt/cosmix/bin/mix
+-- f — find files under the current dir by case-insensitive name substring.
+-- Bareword-callable: `f <pattern...>` (a script on PATH, like ramsum). The
+-- *…* wildcards are added here so you don't quote them, and all args join
+-- with a space to match the old ~/.sh f() `$*` behaviour. -ls gives the
+-- long listing. Port of the ~/.sh f() function.
+
+$argv = args()
+if length($argv) < 1 then
+  print "Usage: f <name-pattern>"
+  exit(1)
+end
+$pat = join($argv, " ")
+exit(run_stream(["find", ".", "-type", "f", "-iname", "*" .. $pat .. "*", "-ls"]))
