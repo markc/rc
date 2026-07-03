@@ -49,4 +49,8 @@ function path_drop($p, $deny)
     return $out
 end
 
-export PATH = path_clean("${HOME}/.rc/_bin:${HOME}/.local/bin:" .. env("PATH"))
+-- /opt/cosmix/bin is the canonical cosmix install dir on every fleet host
+-- (mix, cosmix-noded, …). Login PATH doesn't always include it (empty
+-- /etc/environment, UsePAM-off nodes), so guarantee it here when present.
+$cosmix_bin = is_dir("/opt/cosmix/bin") ? "/opt/cosmix/bin:" : ""
+export PATH = path_clean("${HOME}/.rc/_bin:${HOME}/.local/bin:" .. $cosmix_bin .. env("PATH"))
