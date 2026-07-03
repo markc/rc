@@ -1,25 +1,28 @@
 -- 30-pkgmgr.mix — per-distro package manager aliases.
--- Depends on $ostyp set in ~/.rc/_mixrc.
+-- Depends on $ostyp and $SUDO set in ~/.rc/_mixrc ("" when root, so these
+-- work on root-only hosts with no sudo installed; paru self-elevates).
 
 if $ostyp == "cachyos" or $ostyp == "arch" then
     alias i = "paru -S --skipreview --noconfirm"
     alias r = "paru -Rns"
     alias s = "paru -Ss"
-    alias u = "sudo pacman -Syu --noconfirm"
+    alias u = "${SUDO}pacman -Syu --noconfirm"
     alias ua = "paru -Sua --noconfirm --skipreview"
     alias uu = "paru -Syu --noconfirm --skipreview"
     alias uc = "paru -Syu --noconfirm --skipreview && paru -Scc --noconfirm && paru -c --noconfirm"
     alias lspkg = "paru -Qs"
-    alias edpkg = "sudo nano -t -x -c /etc/pacman.conf"
+    alias edpkg = "${SUDO}nano -t -x -c /etc/pacman.conf"
 else if $ostyp == "alpine" then
-    alias i = "sudo apk add"
-    alias r = "sudo apk del"
-    alias s = "sudo apk search -v"
-    alias u = "sudo apk update && sudo apk upgrade"
-    alias lspkg = "sudo apk info | sort"
+    alias i = "${SUDO}apk add"
+    alias r = "${SUDO}apk del"
+    alias s = "${SUDO}apk search -v"
+    alias u = "${SUDO}apk update && ${SUDO}apk upgrade"
+    alias lspkg = "${SUDO}apk info | sort"
 else if $ostyp == "debian" or $ostyp == "ubuntu" then
-    alias i = "sudo apt-get install"
-    alias r = "sudo apt-get remove --purge"
+    alias i = "${SUDO}apt-get install"
+    alias r = "${SUDO}apt-get remove --purge"
     alias s = "apt-cache search"
-    alias u = "sudo apt-get update && sudo apt-get -y -f dist-upgrade && sudo apt-get -y autoremove && sudo apt-get clean"
+    alias u = "${SUDO}apt-get update && ${SUDO}apt-get -y -f dist-upgrade && ${SUDO}apt-get -y autoremove && ${SUDO}apt-get clean"
+    alias lspkg = "dpkg -l"
+    alias edpkg = "${SUDO}nano -t -x -c /etc/apt/sources.list"
 end
