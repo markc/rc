@@ -4,7 +4,7 @@
 -- ~/.local/bin/    machine-local user binaries.
 -- $PATH            inherited (preserved at end).
 --
--- User can override later from ~/.mixrc or ~/.myrc.mix. Because the
+-- User can override later from ~/.mixrc. Because the
 -- toolkit glob runs *before* ~/.mixrc's own PATH block, both layers
 -- prepend overlapping dirs — so we expose path_clean()/path_drop() for
 -- the machine rc to call as its final step. What to drop (perl, merged

@@ -6,12 +6,11 @@
 -- glob-loads ~/.rc/_lib/*.mix in lexical order.
 --
 -- This file is the public, shareable wrapper. No machine-local content,
--- no secrets. User additions go in ~/.myrc.mix (personal/secrets) or in
--- topic modules dropped into ~/.rc/_lib/ that the user owns.
+-- no secrets. User additions go in ~/.mixrc (machine-local, not in git)
+-- or in topic modules dropped into ~/.rc/_lib/ that the user owns.
 --
--- Plan reference: ~/.cosmix/src/_doc/planned/2026-05-24-repo-split-mix-mixrc-cos.md
--- (this is the `rc` repo, cloned to ~/.rc/; the future `mix` carve-out
--- is a separate repo).
+-- The mix binary itself lives in the sibling repo github.com/markc/mix;
+-- see README.md for the full manual and install steps.
 
 $HOME = env("HOME")
 

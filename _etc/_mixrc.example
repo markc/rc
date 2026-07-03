@@ -3,11 +3,10 @@
 -- version it (it carries secrets, machine-specific PATH, host aliases).
 --
 -- Mirrors the ~/.sh/_myrc.example → ~/.myrc relationship, with one
--- structural difference (per 2026-05-23 bash-to-Mix port plan, §2
--- decision c): ~/.mixrc is BOTH the entry point Mix auto-loads (post
--- ~/.cosmix/src/_doc/planned/2026-05-23-mix-as-login-shell.md P1.1) and
--- the user customization layer. The bash side's bashrc/myrc split is
--- intentionally not inherited — one user-edited file, not two.
+-- structural difference: ~/.mixrc is BOTH the entry point mix auto-loads
+-- on interactive startup AND the user customization layer. The bash
+-- side's bashrc/myrc split is intentionally not inherited — one
+-- user-edited file, not two.
 
 -- ─── Load the toolkit first ─────────────────────────────────────────
 source env("HOME") .. "/.rc/_mixrc"
@@ -22,8 +21,11 @@ source env("HOME") .. "/.rc/_mixrc"
 --     source env("HOME") .. "/.ns/_etc/secrets/secrets.mix"
 -- end
 
--- ─── PATH (single source of truth) ──────────────────────────────────
--- export PATH = env("HOME") .. "/.local/bin:" .. env("HOME") .. "/.cargo/bin:" .. env("HOME") .. "/.ns/_bin:" .. env("PATH")
+-- ─── PATH (machine-local additions, deduped as the final step) ──────
+-- The toolkit's 10-path.mix already prepends ~/.rc/_bin, ~/.local/bin and
+-- /opt/cosmix/bin (when present). Add machine dirs here, then path_clean()
+-- the result so overlapping prepends collapse to one occurrence each:
+-- export PATH = path_clean(env("HOME") .. "/.cargo/bin:" .. env("PATH"))
 
 -- ─── Prompt label / colour (overrides _mixrc defaults) ───────────────
 -- export LABEL = "myhost"

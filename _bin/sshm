@@ -2,16 +2,17 @@
 -- sshm — SSH Manager for Mix
 -- Port of ~/.sh/_bin/rcm (SSH host/key management, init, sync, git)
 -- Runtime path: ~/.rc/_bin/sshm  (PATH'd by ~/.rc/_lib/10-path.mix)
--- The ~/.rc/ scaffold (~/.mixrc, _mixrc, _lib/) is hand-provisioned
--- per ~/.cosmix/src/_doc/planned/2026-05-24-bash-to-mix-port.md §A0,
--- independently of this script.
+-- The ~/.rc/ scaffold (~/.mixrc, _mixrc, _lib/) is provisioned per the
+-- README install steps, independently of this script.
 
 $HOME = env("HOME")
 $SSH = "${HOME}/.ssh"
-if env("COSMIX_SRC") != "" then
-    $MX = env("COSMIX_SRC")
+-- The toolkit repo `sshm pull` / `sshm push` operate on. RC_SRC overrides
+-- for a non-standard clone location.
+if env("RC_SRC") != "" then
+    $REPO = env("RC_SRC")
 else
-    $MX = "${HOME}/.cosmix"
+    $REPO = "${HOME}/.rc"
 end
 
 -- ========== HELP ==========
@@ -39,8 +40,8 @@ function help_all()
     print "  sshm key_delete NAME                            # Remove keypair"
     print ""
     print "GIT"
-    print "  sshm pull                                       # Fetch + pull ~/.cosmix"
-    print "  sshm push [MESSAGE]                             # Commit + push ~/.cosmix"
+    print "  sshm pull                                       # Fetch + pull ~/.rc (this toolkit)"
+    print "  sshm push [MESSAGE]                             # Commit + push ~/.rc (this toolkit)"
     print ""
     print "UTILITIES"
     print "  sshm perms                                      # Fix ~/.ssh permissions"
@@ -73,10 +74,9 @@ end
 -- ========== INIT ==========
 
 function mx_init()
-    -- The ~/.rc/ scaffold (~/.mixrc, _mixrc, _lib/) is hand-provisioned
-    -- per ~/.cosmix/src/_doc/planned/2026-05-24-bash-to-mix-port.md §A0.
-    -- sshm init only sets up ~/.ssh/ — keeps sshm self-contained and matches
-    -- the strict-A5.4 untrack model (no templates ride along with sshm).
+    -- The ~/.rc/ scaffold (~/.mixrc, _mixrc, _lib/) is provisioned per the
+    -- README install steps. sshm init only sets up ~/.ssh/ — keeps sshm
+    -- self-contained (no templates ride along with sshm).
     ssh_init()
 end
 
@@ -397,7 +397,8 @@ function do_sync($host)
             print "  ssh ${host} 'echo /opt/cosmix/bin/mix | tee -a /etc/shells && chsh -s /opt/cosmix/bin/mix'"
         else
             print "Warning: /opt/cosmix/bin/mix not present locally — skipping bootstrap"
-            print "         Build from https://github.com/markc/mix first (needs ~/.cosmix sibling checkout pre-crates.io-publish)"
+            print "         Install from https://github.com/markc/mix/releases (or build from"
+            print "         source: clone markc/amp + markc/mix as siblings, cargo build in ~/.mix/src)"
         end
     end
 
@@ -407,21 +408,21 @@ end
 -- ========== GIT ==========
 
 function do_pull()
-    $status = trim(sh "cd ${MX} && git fetch origin 2>&1 && git status -sb | head -1")
+    $status = trim(sh "cd ${REPO} && git fetch origin 2>&1 && git status -sb | head -1")
     print $status
 
-    $local = trim(sh "cd ${MX} && git rev-parse HEAD")
-    $remote = trim(sh "cd ${MX} && git rev-parse @{u} 2>/dev/null")
+    $local = trim(sh "cd ${REPO} && git rev-parse HEAD")
+    $remote = trim(sh "cd ${REPO} && git rev-parse @{u} 2>/dev/null")
 
     if $local == $remote then
-        print "~/.cosmix is up to date"
+        print "\~/.rc is up to date"
     else
-        $behind = trim(sh "cd ${MX} && git rev-list --count HEAD..@{u} 2>/dev/null")
+        $behind = trim(sh "cd ${REPO} && git rev-list --count HEAD..@{u} 2>/dev/null")
         if $behind != "0" and $behind != "" then
             print "${behind} new commit(s) available"
-            sh "cd ${MX} && git pull --ff-only"
+            sh "cd ${REPO} && git pull --ff-only"
             if $rc == 0 then
-                print "~/.cosmix updated"
+                print "\~/.rc updated"
             else
                 print "Error: pull failed (local changes?) — try: sshm push first"
             end
@@ -432,14 +433,14 @@ function do_pull()
 end
 
 function do_push($msg)
-    $status = trim(sh "cd ${MX} && git status --porcelain")
+    $status = trim(sh "cd ${REPO} && git status --porcelain")
 
     if $status == "" then
         -- Nothing to commit — check if we need to push
-        $ahead = trim(sh "cd ${MX} && git rev-list --count @{u}..HEAD 2>/dev/null")
+        $ahead = trim(sh "cd ${REPO} && git rev-list --count @{u}..HEAD 2>/dev/null")
         if $ahead != "0" and $ahead != "" then
             print "Pushing ${ahead} commit(s)..."
-            sh "cd ${MX} && git push"
+            sh "cd ${REPO} && git push"
             if $rc == 0 then
                 print "Pushed to origin"
             else
@@ -453,11 +454,11 @@ function do_push($msg)
 
     -- Build commit message
     if $msg == nil or $msg == "" then
-        $changed = trim(sh "cd ${MX} && git status --porcelain | awk '{print $2}' | tr '\\n' ' '")
+        $changed = trim(sh "cd ${REPO} && git status --porcelain | awk '{print $2}' | tr '\\n' ' '")
         $msg = "Update: ${changed}"
     end
 
-    sh "cd ${MX} && git add -A && git commit -m '${msg}' && git push"
+    sh "cd ${REPO} && git add -A && git commit -m '${msg}' && git push"
     if $rc == 0 then
         print "Committed and pushed"
     else

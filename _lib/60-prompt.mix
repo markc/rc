@@ -1,6 +1,6 @@
 -- 60-prompt.mix — interactive REPL prompt.
 -- Honours $LABEL and $COLOR; user can override them from
--- ~/.mixrc or ~/.myrc.mix sourced after this module.
+-- ~/.mixrc after the toolkit glob completes.
 
 -- Defaults. Plain assignment (no `if $X == nil` defensive form) —
 -- Mix treats undefined sigil reads as runtime errors, so the variable
