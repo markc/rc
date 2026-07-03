@@ -16,9 +16,19 @@ function health()
     sh "ps aux --sort=-%cpu | head -6"
 end
 
--- systemctl wrapper (uses $SUDO set in ~/.rc/_mixrc)
+-- systemctl wrapper (uses $SUDO set in ~/.rc/_mixrc). Bareword-callable
+-- (`sc restart nginx`), so guard the arg-less and service-less forms — an
+-- unset Mix arg is nil, and `${nil}` interpolates to the literal "nil", which
+-- would run `systemctl nil`. No args → list service unit names (bash parity);
+-- action only → run it bare (`sc daemon-reload`); both → act on the service.
 function sc($action, $service)
-    sh "${SUDO}systemctl ${action} ${service}"
+    if $action == nil then
+        sh "${SUDO}systemctl list-units --type=service --no-legend --no-pager --plain | awk '{sub(\".service\", \"\", $1); print $1}'"
+    else if $service == nil then
+        sh "${SUDO}systemctl ${action}"
+    else
+        sh "${SUDO}systemctl ${action} ${service}"
+    end
 end
 
 -- Edit the personal rc (~/.mixrc) and reload it in-place. Exposed as the
