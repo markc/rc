@@ -372,9 +372,15 @@ function do_sync($host)
     -- The dedicated deploy_*.mix scripts in cosmix handle daemon binaries.
     $RC = "${HOME}/.rc"
     print "Syncing ~/.rc/ to ${host}:~/.rc/..."
-    sh "rsync -avz --delete --exclude='.git' --exclude='_journal' --exclude='_doc' ${RC}/ ${host}:~/.rc/"
+    -- tar-over-ssh, not rsync: needs only `tar` + `ssh`, both default on every
+    -- Debian/PBS box, so a fresh or deliberately-minimal server needs NO extra
+    -- package (PBS CTs ship without rsync). Excludes match the old rsync's.
+    -- Extract into .rc.tmp then atomically swap (gives rsync's --delete: a stale
+    -- file can't survive, and a failed transfer leaves the old ~/.rc intact
+    -- because the remote `&&` chain stops before the swap).
+    sh "tar czf - -C ${RC} --exclude=.git --exclude=_journal --exclude=_doc . | ssh ${host} 'rm -rf .rc.tmp && mkdir -p .rc.tmp && tar xzf - -C .rc.tmp && rm -rf .rc && mv .rc.tmp .rc'"
     if $rc != 0 then
-        print "Error: rsync of ~/.rc/ failed"
+        print "Error: tar-over-ssh of ~/.rc/ failed"
         return
     end
 
@@ -426,6 +432,21 @@ function do_sync($host)
         else
             sh "ssh ${host} 'ln -sf /opt/cosmix/bin/mix /usr/local/bin/mix'"
             print "${host}: bridged mix onto PATH (/usr/local/bin/mix -> /opt/cosmix/bin/mix) — mx works over bash login"
+        end
+    end
+
+    -- Seed ~/.mixrc — the machine-local trampoline mix auto-loads on `mix -i`,
+    -- which sources the toolkit. Without it the just-synced ~/.rc is inert.
+    -- Create-if-absent only: NEVER overwrite an existing ~/.mixrc (it may carry
+    -- the user's machine PATH / secrets / prompt label). Relative paths resolve
+    -- against the ssh login home. mix reads it fine whatever the owner.
+    if $have_mix then
+        $has_mixrc = trim(sh "ssh ${host} 'test -f .mixrc && echo yes || echo no'")
+        if $has_mixrc == "no" then
+            sh "ssh ${host} 'cp .rc/_etc/_mixrc.example .mixrc'"
+            print "${host}: seeded ~/.mixrc from _mixrc.example"
+        else
+            print "${host}: ~/.mixrc already present (left as-is)"
         end
     end
 
