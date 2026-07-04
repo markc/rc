@@ -378,6 +378,16 @@ function do_sync($host)
         return
     end
 
+    -- rsync stamps the synced files with the LOCAL uid/gid, so on a root remote
+    -- ~/.rc lands owned by whatever uid built it (e.g. 1002), not root. When the
+    -- ssh user is root (home /root), normalise it back to root:root. (mix reads
+    -- it either way; this just keeps a root home tidy.)
+    $remote_user = trim(sh "ssh ${host} 'id -un'")
+    if $remote_user == "root" then
+        sh "ssh ${host} 'chown -R root:root /root/.rc'"
+        print "${host}: chowned ~/.rc to root:root"
+    end
+
     -- Bootstrap /opt/cosmix/bin/mix on the remote if missing. Interim
     -- procedure until mix has a proper package / release artifact —
     -- scp the local binary and chmod 0755. Requires that the ssh user
