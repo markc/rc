@@ -111,6 +111,25 @@ whenever the directory exists, so `mix`, `which mix`, and the daemon
 binaries resolve on every toolkit host regardless of how the login
 environment was built.
 
+### Running `mx` on a bash-login node
+
+`mx <host> <cmd>` runs `ssh -q -t host "mix -i -c '<cmd>'"`, so the remote's
+**login shell** has to find bare `mix` to launch it. On a mix-login-shell host
+that is automatic. On a **bash-login host** — a stock Debian PVE/PBS box you
+want to drive with `mx` *without* converting it to a Mix login shell —
+`/opt/cosmix/bin` is not on bash's non-interactive PATH, so `mx` fails with
+`mix: command not found`. The `10-path.mix` fix above only applies *inside* a
+mix session, which is the chicken-and-egg: you can't start mix to fix the PATH
+that lets you start mix.
+
+`sshm sync <host>` bridges this automatically. After installing the binary it
+symlinks `/opt/cosmix/bin/mix` into `/usr/local/bin` (which is on the default
+PATH) whenever the remote login shell isn't already mix. That symlink is the
+**entire footprint** on a bash host, and it is inert until someone types `mix`.
+It does **not** touch bash's rc chain: the toolkit (`~/.rc`, `~/.mixrc`) is read
+only by `mix -i`, never by bash, so a bash login stays exactly as Debian shipped
+it. To undo: `rm /usr/local/bin/mix` (and optionally `rm -rf ~/.rc ~/.mixrc`).
+
 ## How the Mix shell loads rc — the source flow
 
 ```

@@ -384,8 +384,10 @@ function do_sync($host)
     -- on the remote can write to /opt/cosmix/bin/ (i.e. is root, or
     -- /opt/cosmix/bin/ is pre-created with appropriate perms).
     $remote_mix = trim(sh "ssh ${host} 'test -x /opt/cosmix/bin/mix && echo yes || echo no' 2>/dev/null")
+    $have_mix = false
     if $remote_mix == "yes" then
         print "${host} already has /opt/cosmix/bin/mix"
+        $have_mix = true
     else
         if is_file("/opt/cosmix/bin/mix") then
             print "Bootstrapping /opt/cosmix/bin/mix on ${host}..."
@@ -393,12 +395,27 @@ function do_sync($host)
             sh "scp -q /opt/cosmix/bin/mix ${host}:/opt/cosmix/bin/mix"
             sh "ssh ${host} 'chmod 0755 /opt/cosmix/bin/mix'"
             print "Mix binary installed on ${host}"
-            print "To make it the login shell:"
-            print "  ssh ${host} 'echo /opt/cosmix/bin/mix | tee -a /etc/shells && chsh -s /opt/cosmix/bin/mix'"
+            $have_mix = true
         else
             print "Warning: /opt/cosmix/bin/mix not present locally — skipping bootstrap"
             print "         Install from https://github.com/markc/mix/releases (or build from"
             print "         source: clone markc/amp + markc/mix as siblings, cargo build in ~/.mix/src)"
+        end
+    end
+
+    -- PATH bridge for `mx <host>`: mx runs `ssh host "mix -i -c ..."`, so the
+    -- remote's login shell must find bare `mix`. A mix-login-shell node already
+    -- has /opt/cosmix/bin on PATH; a bash-login node (a stock Debian PVE/PBS
+    -- host) does NOT — bridge it by symlinking mix into /usr/local/bin, which IS
+    -- on the default PATH. Idempotent, and leaves bash's own rc chain untouched
+    -- (the ~/.rc toolkit is only ever read by `mix -i`, never by bash).
+    if $have_mix then
+        $login_shell = trim(sh "ssh ${host} 'getent passwd $(id -un) | cut -d: -f7'")
+        if $login_shell == "/opt/cosmix/bin/mix" then
+            print "${host}: mix is the login shell — PATH already covers mix"
+        else
+            sh "ssh ${host} 'ln -sf /opt/cosmix/bin/mix /usr/local/bin/mix'"
+            print "${host}: bridged mix onto PATH (/usr/local/bin/mix -> /opt/cosmix/bin/mix) — mx works over bash login"
         end
     end
 
