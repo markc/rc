@@ -28,6 +28,10 @@ alias mem = "free -h"
 -- sysfs glob. Port of ~/.sh `temp`.
 alias temp = "sensors 2>/dev/null || cat /sys/class/thermal/thermal_zone*/temp 2>/dev/null"
 alias sysinfo = "uname -a && uptime && free -h && df -h /"
+-- shortname: deterministic MAC-derived hostname (no input) — "n" + last 5 hex
+-- of the first ethernet NIC's MAC (e.g. ncaba8). The NS5 first-boot <node>
+-- default; pairs with <node>.localhost as the bootstrap FQDN.
+alias shortname = "echo n$(cat /sys/class/net/e*/address 2>/dev/null|head -1|tr -d :|head -c12|tail -c5)"
 alias logs = "journalctl -f"
 alias l = "journalctl -f"
 
