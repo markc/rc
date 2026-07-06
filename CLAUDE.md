@@ -26,6 +26,18 @@ Mix has near-zero training-data presence; do not extrapolate from
 bash/python. When a doc claim conflicts with live `mix -c` behaviour, the
 binary is the oracle.
 
+**Investigate Mix from the binary itself — it is self-documenting.**
+Don't guess from training data; ask the binary:
+
+- `mix builtins` — full remit of every built-in function (`mix builtins
+  --json` machine-readable · `mix builtins <name>` one function · `mix
+  builtins <category>` filter · or the `--builtins` flag).
+- `mix man` — manual index; `mix man TOPIC` one live-verified page per
+  topic (also browsable under `~/.mix/docs/_man/`).
+- `mix --help` / `mix help` — CLI usage, flags, invocation modes.
+- `mix -c '<probe>'` — run a one-liner to check live behaviour when a
+  claim is uncertain; what the binary does wins.
+
 ## Architecture
 
 ### Load chain (interactive sessions only)
