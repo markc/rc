@@ -19,9 +19,10 @@ The Mix **language** lives in [`markc/mix`](https://github.com/markc/mix)
 as a sibling checkout. Everything here is Mix source; the binary is under
 active development, so this scaffold can break in lockstep with it.
 
-**Before writing or editing any Mix code, read `~/.mix/AGENTS.md`** — the
-dense, live-verified Mix language reference (sigils, `..` concat, string
-interpolation rules, the shell-vs-Mix classifier, structured returns).
+**Before writing or editing any Mix code, read `mix man overview` and
+`mix man syntax`** — the mental model, the newline rule, and the
+shell-vs-Mix classifier. `~/.mix/AGENTS.md` is the short agent orientation
+sheet on top of the manual, not the reference itself.
 Mix has near-zero training-data presence; do not extrapolate from
 bash/python. When a doc claim conflicts with live `mix -c` behaviour, the
 binary is the oracle.
@@ -99,8 +100,8 @@ silently falling back to bash.
 
 ## Repo-specific Mix notes
 
-The full language reference is `~/.mix/AGENTS.md`; these are the
-behaviours this codebase leans on:
+The full language reference is the live manual (`mix man TOPIC`); these
+are the behaviours this codebase leans on:
 
 - **`sh "cmd"`** runs a command via the shell: as a bare statement the
   output streams; as an expression it returns captured stdout; either way
@@ -137,9 +138,9 @@ behaviours this codebase leans on:
 ## Related repos
 
 - [`markc/mix`](https://github.com/markc/mix) — the Mix language:
-  `mix` binary + interpreter library. `AGENTS.md` there is the language
-  reference; agent-facing changes to Mix behaviour update it in the same
-  commit.
+  `mix` binary + interpreter library. The manual (`docs/_man/`,
+  `mix man`) is the language reference and behaviour changes update it
+  in the same commit; `AGENTS.md` there is the agent orientation sheet.
 - [`markc/amp`](https://github.com/markc/amp) — AMP protocol library
   family mix builds against (sibling checkout `~/.amp`).
 - [`markc/sh`](https://github.com/markc/sh) — the bash equivalent of
