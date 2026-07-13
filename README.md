@@ -335,6 +335,33 @@ ramsum <pattern>
 Lists matching processes by RSS and prints the summed total in GB.
 Sibling of the `ram` alias.
 
+### `shwho` — domain registration + DNS summary
+
+```
+shwho <domain>
+```
+
+One screen of the things you check when a domain misbehaves: registrar,
+nameservers and DNSSEC status from `whois`, the domain's A records, then
+every MX host with its IPs and their reverse (PTR) names — the mail-side
+sanity check.
+
+```
+$ shwho renta.net
+Registrar: Synergy Wholesale Accreditations Pty Ltd
+Name Server: NS2.RENTA.NET
+Name Server: NS1.RENTA.NET
+Name Server: NS3.RENTA.NET
+DNSSEC: unsigned
+renta.net = 203.25.132.25
+mail.motd.com = 203.25.132.25
+203.25.132.25 = mail.motd.com
+```
+
+Needs `whois` and `dig` (Debian: `whois` + `dnsutils`; Arch: `whois` +
+`bind`); it names whichever is missing and exits rather than printing a
+blank report.
+
 ### `chperms` — remote vhost permission fixer
 
 Fixes web-vhost ownership/permissions on a remote node over ssh

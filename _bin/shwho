@@ -1,0 +1,79 @@
+#!/opt/cosmix/bin/mix
+-- shwho — one-screen registration + DNS summary for a domain: registrar,
+-- nameservers, DNSSEC, A records, MX hosts with their IPs and PTRs.
+-- Mix port of the NS 1.0 bash ~/.sh/bin/shwho (1995-2022, AGPL-3.0).
+--
+--   shwho <domain>
+--
+-- The bash original piped whois through grep -E and dug the MX out with
+-- awk/sed. Mix does the lot in-process: run_argv() spawns whois/dig with a
+-- real argv (no shell, so a hostile "domain" can't inject), grep() applies
+-- the regex to captured stdout, and word()/replace() take the place of
+-- awk/sed. Only whois and dig are genuinely external — both are checked up
+-- front, since without them every line below is silently empty.
+
+$argv = args()
+if length($argv) < 1 or $argv[0] == "-h" or $argv[0] == "--help" then
+  print "Usage: shwho <domain>"
+  exit(1)
+end
+$dom = $argv[0]
+
+-- Hard requirements: bail loudly rather than print a blank report.
+$missing = []
+if which("whois") == nil then push($missing, "whois") end
+if which("dig") == nil then push($missing, "dig") end
+if length($missing) > 0 then
+  eprintf("ERROR: shwho needs %s — not found in PATH\n", join($missing, " and "))
+  exit(1)
+end
+
+-- dig one record type, return the answers as a list of trimmed lines.
+fn dig($type, $name)
+  $r = run_argv(["dig", "+short", $type, $name], {timeout: 15})
+  if not $r.ok or trim($r.stdout) == "" then
+    return []
+  end
+  return split(trim($r.stdout), "\n")
+end
+
+-- Strip the trailing dot dig puts on an FQDN (the old `sed -e 's/\.$//'`).
+fn unfqdn($s)
+  if ends_with($s, ".") then
+    return left($s, length($s) - 1)
+  end
+  return $s
+end
+
+-- Registrar / nameservers / DNSSEC, straight out of the whois record.
+-- whois can be slow (and hang on rate-limited TLD servers), hence the deadline.
+$w = run_argv(["whois", $dom], {timeout: 30})
+if $w.timed_out then
+  eprintf("WARN: whois %s timed out\n", $dom)
+end
+for each $line in grep("^(Registrar:|Registrar Name:|Name Server:|DNSSEC:)", $w.stdout)
+  print(trim($line))
+end
+
+-- A/AAAA records for the domain itself, space-joined on one line.
+printf("%s = %s\n", $dom, join(dig("a", $dom), " "))
+
+-- Each MX host, its IP, and the reverse (PTR) — the mail-side sanity check
+-- the original was really written for.
+for each $mx in dig("mx", $dom)
+  $host = unfqdn(word($mx, 2))          -- "10 mail.example.com." -> "mail.example.com"
+  if $host == nil then
+    continue
+  end
+  $ips = dig("a", $host)
+  if length($ips) == 0 then
+    continue
+  end
+  printf("%s = %s\n", $host, join($ips, " "))
+  for each $ip in $ips
+    $ptr = dig("-x", $ip)
+    if length($ptr) > 0 then
+      printf("%s = %s\n", $ip, unfqdn($ptr[0]))
+    end
+  end
+end
