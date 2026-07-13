@@ -23,7 +23,8 @@ function help_all()
     print ""
     print "SETUP"
     print "  sshm init                                       # Set up this machine"
-    print "  sshm sync HOST                                  # Push ~/.rc/ to remote (+ bootstrap mix if missing)"
+    print "  sshm sync HOST [--force]                        # Push ~/.rc/ to remote (+ bootstrap mix if missing)"
+    print "                                                  # refuses a git checkout (use git pull) or the bash toolkit"
     print ""
     print "HOST COMMANDS"
     print "  sshm create NAME IP [PORT] [USER] [KEYFILE]     # Save host"
@@ -361,10 +362,47 @@ end
 
 -- ========== SYNC ==========
 
-function do_sync($host)
+function do_sync($host, $force)
     if $host == nil then
-        print "Usage: sshm sync <host>"
+        print "Usage: sshm sync <host> [--force]"
         return
+    end
+
+    -- ---- CLOBBER GUARD ----
+    -- sync is a REPLACE: the tar chain below does `rm -rf .rc && mv .rc.tmp .rc`,
+    -- so whatever is at the remote ~/.rc is destroyed wholesale — .git and all.
+    -- Two remotes must never be synced onto blind:
+    --
+    --   .rc/.git    a git clone (every mesh node). Destroying .git turns a
+    --               pullable checkout into a dead copy; and syncing ONTO one
+    --               without deleting .git (the old rsync --exclude=.git path)
+    --               is what left the fleet permanently "dirty" against a stale
+    --               HEAD in the first place. Canonical deploy is `git pull`.
+    --   .rc/_shrc   the markc/sh BASH toolkit, which also lives at ~/.rc on the
+    --               legacy NS 1.0 servers and is sourced from their .bashrc.
+    --               A different repo that happens to share the path — replacing
+    --               it with this Mix scaffold breaks that box's root shell.
+    --
+    -- One round trip; `test` is a bareword head, so it dispatches to the shell
+    -- on a mix-login node and runs natively on a bash one. Trailing `true` keeps
+    -- the exit status clean when neither marker is present.
+    $probe = trim(sh "ssh ${host} 'test -e .rc/.git && echo has-git; test -e .rc/_shrc && echo has-shrc; true'")
+    if contains($probe, "has-shrc") then
+        print "REFUSING: ${host}:~/.rc is the markc/sh BASH toolkit (found ~/.rc/_shrc),"
+        print "          not this Mix scaffold — a different repo at the same path."
+        print "          Syncing would delete it out from under that host's bash login shell."
+        print "          If you really mean to convert this host: remove ~/.rc there first."
+        return
+    end
+    if contains($probe, "has-git") and not $force then
+        print "REFUSING: ${host}:~/.rc is a git checkout — sync would delete it (.git included)."
+        print "          Deploy with git instead:"
+        print "              mx ${host} 'git -C ~/.rc pull --ff-only'"
+        print "          Use `sshm sync ${host} --force` only to re-seed a broken checkout."
+        return
+    end
+    if contains($probe, "has-git") then
+        print "WARNING: --force — replacing the git checkout at ${host}:~/.rc with a plain copy"
     end
 
     -- Push ~/.rc/ (the scaffold), nothing more. Dev artifacts and source
@@ -558,7 +596,7 @@ else if $cmd == "h" or $cmd == "help" then
 else if $cmd == "i" or $cmd == "init" then
     mx_init()
 else if $cmd == "s" or $cmd == "sync" then
-    do_sync($2)
+    do_sync($2, $3 == "--force" or $3 == "-f")
 else if $cmd == "c" or $cmd == "create" then
     host_create($2, $3, $4, $5, $6)
 else if $cmd == "r" or $cmd == "read" or $cmd == "show" then
