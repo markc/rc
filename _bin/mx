@@ -1,23 +1,84 @@
 #!/opt/cosmix/bin/mix
--- mx — run a command on a remote mix-login-shell node with the remote's
--- ~/.mixrc loaded (aliases + toolkit PATH). The mix twin of `sx` (bash -ci),
--- pointed at mix-shell nodes: it drives the remote through `mix -i -c`, so
--- remote aliases (e.g. `ll`, `df`) and toolkit PATH resolve — unlike a plain
--- `ssh host cmd`, which since mix 0.5.0 dispatches commands but without rc.
+-- mx — run things on a remote mix-login-shell node. Three modes:
 --
---   mx <host> <command...>          # host in ~/.ssh/config
+--   mx <host> <command...>          default: alias-aware + interactive.
+--       Drives the remote through `ssh -q -t <host> "mix -i -c '<cmd>'"`, so
+--       remote aliases (`ll`, `df`) and toolkit PATH resolve, output streams
+--       live, and interactive prompts (apt/sudo) work. The command is re-parsed
+--       by the remote mix shell classifier — fine for everyday commands, but it
+--       re-splits argv and re-reads shell metachars (`<`, `(`, quotes). For
+--       anything quoting-sensitive, use -e or -m.
 --
--- Builds:  ssh -q -t <host> "mix -i -c '<command>'"
--- The remote login-shell `mix -c` dispatches the inner `mix -i -c` (resolved
--- to the node's binary via current_exe), which sources ~/.mixrc then runs the
--- command. Spawned via run_stream with an argv LIST (no /bin/sh): output
--- streams live and, because `ssh -t` allocates a remote pty, interactive
--- prompts (apt confirmations, sudo password) work — type the answer and the
--- remote sees it. `-t` cooks the output (CR/LF, escape codes) like `sx`.
+--   mx -e <host> <argv...>          exec: EXACT argv, no shell, no rc.
+--       Ships the argv list truthfully via ssh_exec -> remote run_argv: no
+--       re-parse, no word-splitting, metacharacters are literal. Fixes the old
+--       footguns — `mx -e h grep -E '<foo' f`, `mx -e h pgrep -f 'a b'` — that
+--       the default mode mangled. Output is captured (printed on completion),
+--       non-interactive. Needs remote mix >= 0.29 (run_argv).
+--
+--   mx -m <host> <script.mix|->     mix: run Mix SOURCE remotely.
+--       Reads a .mix file (or stdin with `-`) and ships it over ssh stdin via
+--       ssh_mix — zero quoting on either side, for remote Mix programs:
+--       `echo 'remove_dir("/x")' | mx -m h -`.
+--
+-- ssh resolves <host> from ~/.ssh/config exactly as `ssh`/`sx` do. The old mx
+-- funnelled EVERY invocation through remote `mix -i -c`, which re-parsed the
+-- args and broke on quotes, word-boundaries, and `<`/`(`; -e and -m are the
+-- clean channels (argv-truthful / source-over-stdin) for those cases.
 
 $argv = args()
+if length($argv) < 1 then
+  print("Usage:")
+  print("  mx <host> <command...>        alias-aware, live, interactive")
+  print("  mx -e <host> <argv...>        exact argv, no shell (ssh_exec)")
+  print("  mx -m <host> <script.mix|->   run Mix source remotely (ssh_mix)")
+  exit(1)
+end
+
+-- ---- exec mode: exact argv via ssh_exec (no shell, no re-parse) ----
+if $argv[0] == "-e" or $argv[0] == "--exec" then
+  if length($argv) < 3 then
+    eprint("mx -e: need <host> and at least one argv word")
+    exit(1)
+  end
+  $host = $argv[1]
+  $r = ssh_exec($host, slice($argv, 2), { timeout: 0 })
+  if length($r.stdout) > 0 then print($r.stdout) end
+  if length($r.stderr) > 0 then eprint($r.stderr) end
+  if $r.exit_code == nil then
+    eprint("mx -e: transport error on " .. $host .. " (" .. ("" .. $r.error_code) .. ")")
+    exit(255)
+  end
+  exit($r.exit_code)
+end
+
+-- ---- mix mode: ship Mix source via ssh_mix (zero quoting) ----
+if $argv[0] == "-m" or $argv[0] == "--mix" then
+  if length($argv) < 3 then
+    eprint("mx -m: need <host> and <script.mix|->")
+    exit(1)
+  end
+  $host = $argv[1]
+  $path = $argv[2]
+  $src = ""
+  if $path == "-" then
+    $src = read_stdin()
+  else
+    $src = read_file($path)
+  end
+  $r = ssh_mix($host, $src, { timeout: 0 })
+  if length($r.stdout) > 0 then print($r.stdout) end
+  if length($r.stderr) > 0 then eprint($r.stderr) end
+  if $r.exit_code == nil then
+    eprint("mx -m: transport error on " .. $host .. " (" .. ("" .. $r.error_code) .. ")")
+    exit(255)
+  end
+  exit($r.exit_code)
+end
+
+-- ---- default mode: alias-aware, live, interactive (unchanged behaviour) ----
 if length($argv) < 2 then
-  print "Usage: mx <host> <command...>   (host in ~/.ssh/config; runs remote `mix -i -c`)"
+  print("Usage: mx <host> <command...>   (host in ~/.ssh/config; runs remote `mix -i -c`)")
   exit(1)
 end
 
@@ -29,10 +90,9 @@ while $i < length($argv)
   $i = $i + 1
 end
 
--- Nested quoting: shell_quote wraps <cmd> as ONE arg to the inner `mix -i -c`.
--- That whole `mix -i -c '<cmd>'` string is a single argv element here, so ssh
--- receives it as one remote-command argument — no second shell-quote needed
--- (run_stream does no shell parsing). `-q` mutes the ssh banner/close notice;
--- `-t` forces a remote pty (live stream + interactive prompts).
+-- shell_quote wraps <cmd> as ONE arg to the inner `mix -i -c`; that whole
+-- string is a single argv element, so ssh gets it as one remote-command arg
+-- (run_stream does no shell parsing). `-q` mutes the ssh banner; `-t` forces a
+-- remote pty (live stream + interactive prompts).
 $remote = "mix -i -c " .. shell_quote($cmd)
 exit(run_stream(["ssh", "-q", "-t", $host, $remote]))
