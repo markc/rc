@@ -7,8 +7,8 @@
 --
 -- The bash original piped whois through grep -E and dug the MX out with
 -- awk/sed. Mix does the lot in-process: run_argv() spawns whois/dig with a
--- real argv (no shell, so a hostile "domain" can't inject), grep() applies
--- the regex to captured stdout, and word()/replace() take the place of
+-- real argv (no shell, so a hostile "domain" can't inject), grep_lines()
+-- applies the regex to captured stdout, and word()/replace() take the place of
 -- awk/sed. Only whois and dig are genuinely external — both are checked up
 -- front, since without them every line below is silently empty.
 
@@ -51,7 +51,7 @@ $w = run_argv(["whois", $dom], {timeout: 30})
 if $w.timed_out then
   eprintf("WARN: whois %s timed out\n", $dom)
 end
-for each $line in grep("^(Registrar:|Registrar Name:|Name Server:|DNSSEC:)", $w.stdout)
+for each $line in grep_lines($w.stdout, "^(Registrar:|Registrar Name:|Name Server:|DNSSEC:)")
   print(trim($line))
 end
 
