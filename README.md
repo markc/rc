@@ -198,8 +198,8 @@ From `20-aliases.mix` — universal, on every toolkit host.
 
 | Alias | Does |
 |---|---|
-| `e` | `nano -t -x -c` |
-| `se` | `sudo nano -t -x -c` |
+| `e` | `msedit` |
+| `se` | `sudo msedit` |
 
 **Monitoring**
 
@@ -271,7 +271,7 @@ From `70-functions.mix` and `10-path.mix`:
 - **`health()`** — one-shot system snapshot: uptime, memory, root disk,
   top CPU processes.
 - **`sc($action, $service)`** — `${SUDO}systemctl <action> <service>`.
-- **`es`** (alias for `edit_shell()`) — edit `~/.mixrc` in nano, then
+- **`es`** (alias for `edit_shell()`) — edit `~/.mixrc` in msedit, then
   **syntax-check it in a child mix (`mix --check`) before sourcing**, so
   a typo warns and leaves the live session intact instead of throwing a
   parse error on reload. On a clean check the file is re-sourced
@@ -381,7 +381,7 @@ the full help.
 | `sshm create NAME IP [PORT] [USER] [KEY]` | `c` | write `~/.ssh/hosts/NAME` (defaults: 22, root, `keys/default`) |
 | `sshm list` | `l` | aligned table of all hosts |
 | `sshm read NAME` | `r` | show one host stanza |
-| `sshm update NAME` | `u` | edit a host in `$EDITOR` (default nano) |
+| `sshm update NAME` | `u` | edit a host in `$EDITOR` (default msedit) |
 | `sshm delete NAME` | `d` | remove a host |
 | `sshm test [NAME]` | `t` | BatchMode connectivity test — one host or all, OK/FAILED summary |
 | `sshm key_create [NAME] [COMMENT] [PW]` | `kc` | Ed25519 keypair in `~/.ssh/keys/` |

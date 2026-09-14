@@ -11,7 +11,7 @@ if $ostyp == "cachyos" or $ostyp == "arch" then
     alias uu = "paru -Syu --noconfirm --skipreview"
     alias uc = "paru -Syu --noconfirm --skipreview && paru -Scc --noconfirm && paru -c --noconfirm"
     alias lspkg = "paru -Qs"
-    alias edpkg = "${SUDO}nano -t -x -c /etc/pacman.conf"
+    alias edpkg = "${SUDO}msedit /etc/pacman.conf"
 else if $ostyp == "alpine" then
     alias i = "${SUDO}apk add"
     alias r = "${SUDO}apk del"
@@ -24,5 +24,5 @@ else if $ostyp == "debian" or $ostyp == "ubuntu" then
     alias s = "apt-cache search"
     alias u = "${SUDO}apt-get update && ${SUDO}apt-get -y -f dist-upgrade && ${SUDO}apt-get -y autoremove && ${SUDO}apt-get clean"
     alias lspkg = "dpkg -l"
-    alias edpkg = "${SUDO}nano -t -x -c /etc/apt/sources.list"
+    alias edpkg = "${SUDO}msedit /etc/apt/sources.list"
 end

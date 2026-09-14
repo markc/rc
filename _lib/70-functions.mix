@@ -35,11 +35,11 @@ end
 -- bareword `es` via the alias below: an alias whose body is a Mix call runs
 -- in the REPL process (not a subshell), so the `source` reload lands in the
 -- live session — aliases/functions/exports re-register globally even from
--- inside a function. nano runs via run_stream for an inherited TTY; `sh`/
+-- inside a function. msedit runs via run_stream for an inherited TTY; `sh`/
 -- `run` capture stdio and would break the interactive editor.
 function edit_shell()
     $rc = env("HOME") .. "/.mixrc"
-    run_stream(["nano", "-t", "-x", "-c", $rc])
+    run_stream(["msedit", $rc])
     -- Syntax-check the edit in a child mix BEFORE sourcing, so a typo warns
     -- and leaves the live session intact instead of throwing a parse error
     -- on reload. --check parses without executing; errors land on stderr.

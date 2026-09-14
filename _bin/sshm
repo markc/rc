@@ -182,7 +182,7 @@ function host_update($name)
     if is_file($path) then
         $editor = env("EDITOR")
         if $editor == "" then
-            $editor = "nano -t -x -c"
+            $editor = "msedit"
         end
         sh "${editor} ${path}"
     else

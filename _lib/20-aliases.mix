@@ -6,9 +6,9 @@ alias ll = "LC_COLLATE=C ls -lF --group-directories-first --color"
 alias ls = "LC_COLLATE=C ls -F --group-directories-first --color"
 alias df = "df -kTh"
 
--- Editors
-alias e = "nano -t -x -c"
-alias se = "sudo nano -t -x -c"
+-- Editors — msedit (Microsoft Edit, Rust/MIT); replaced nano 2026-09-14.
+alias e = "msedit"
+alias se = "sudo msedit"
 
 -- System tools
 alias ff = "fastfetch --logo none"
