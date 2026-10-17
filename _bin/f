@@ -1,4 +1,4 @@
-#!/opt/cosmix/bin/mix
+#!/usr/bin/env mix
 -- f — find files under the current dir by case-insensitive name substring.
 -- Bareword-callable: `f <pattern...>` (a script on PATH, like ramsum). The
 -- *…* wildcards are added here so you don't quote them, and all args join

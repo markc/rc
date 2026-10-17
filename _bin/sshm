@@ -1,4 +1,4 @@
-#!/opt/cosmix/bin/mix
+#!/usr/bin/env mix
 -- sshm — SSH Manager for Mix
 -- Port of ~/.sh/_bin/rcm (SSH host/key management, init, sync, git)
 -- Runtime path: ~/.rc/_bin/sshm  (PATH'd by ~/.rc/_lib/10-path.mix)
@@ -432,44 +432,46 @@ function do_sync($host, $force)
         print "${host}: chowned ~/.rc to root:root"
     end
 
-    -- Bootstrap /opt/cosmix/bin/mix on the remote if missing. Interim
+    -- Bootstrap /opt/mixos/bin/mix on the remote if it has no mix. Interim
     -- procedure until mix has a proper package / release artifact —
     -- scp the local binary and chmod 0755. Requires that the ssh user
-    -- on the remote can write to /opt/cosmix/bin/ (i.e. is root, or
-    -- /opt/cosmix/bin/ is pre-created with appropriate perms).
-    $remote_mix = trim(sh "ssh ${host} 'test -x /opt/cosmix/bin/mix && echo yes || echo no' 2>/dev/null")
+    -- on the remote can write to /opt/mixos/bin/ (i.e. is root, or
+    -- /opt/mixos/bin/ is pre-created with appropriate perms).
+    -- /opt/mixos/bin is canonical; a legacy /opt/cosmix/bin/mix is accepted
+    -- as-is so not-yet-migrated hosts keep working (never re-created).
+    $remote_mix = trim(sh "ssh ${host} 'if test -x /opt/mixos/bin/mix; then echo /opt/mixos/bin/mix; elif test -x /opt/cosmix/bin/mix; then echo /opt/cosmix/bin/mix; else echo no; fi' 2>/dev/null")
     $have_mix = false
-    if $remote_mix == "yes" then
-        print "${host} already has /opt/cosmix/bin/mix"
+    if $remote_mix != "no" and $remote_mix != "" then
+        print "${host} already has ${remote_mix}"
         $have_mix = true
     else
-        if is_file("/opt/cosmix/bin/mix") then
-            print "Bootstrapping /opt/cosmix/bin/mix on ${host}..."
-            sh "ssh ${host} 'mkdir -p /opt/cosmix/bin'"
-            sh "scp -q /opt/cosmix/bin/mix ${host}:/opt/cosmix/bin/mix"
-            sh "ssh ${host} 'chmod 0755 /opt/cosmix/bin/mix'"
+        if is_file("/opt/mixos/bin/mix") then
+            print "Bootstrapping /opt/mixos/bin/mix on ${host}..."
+            sh "ssh ${host} 'mkdir -p /opt/mixos/bin'"
+            sh "scp -q /opt/mixos/bin/mix ${host}:/opt/mixos/bin/mix"
+            sh "ssh ${host} 'chmod 0755 /opt/mixos/bin/mix'"
             print "Mix binary installed on ${host}"
+            $remote_mix = "/opt/mixos/bin/mix"
             $have_mix = true
         else
-            print "Warning: /opt/cosmix/bin/mix not present locally — skipping bootstrap"
-            print "         Install from https://github.com/markc/mix/releases (or build from"
-            print "         source: clone markc/amp + markc/mix as siblings, cargo build in ~/.mix/src)"
+            print "Warning: /opt/mixos/bin/mix not present locally — skipping bootstrap"
+            print "         Build it from ~/Projects/mixos (libs/mix + cli/mix-shell)"
         end
     end
 
     -- PATH bridge for `mx <host>`: mx runs `ssh host "mix -i -c ..."`, so the
     -- remote's login shell must find bare `mix`. A mix-login-shell node already
-    -- has /opt/cosmix/bin on PATH; a bash-login node (a stock Debian PVE/PBS
+    -- has its bin dir on PATH; a bash-login node (a stock Debian PVE/PBS
     -- host) does NOT — bridge it by symlinking mix into /usr/local/bin, which IS
     -- on the default PATH. Idempotent, and leaves bash's own rc chain untouched
     -- (the ~/.rc toolkit is only ever read by `mix -i`, never by bash).
     if $have_mix then
         $login_shell = trim(sh "ssh ${host} 'getent passwd $(id -un) | cut -d: -f7'")
-        if $login_shell == "/opt/cosmix/bin/mix" then
+        if $login_shell == $remote_mix then
             print "${host}: mix is the login shell — PATH already covers mix"
         else
-            sh "ssh ${host} 'ln -sf /opt/cosmix/bin/mix /usr/local/bin/mix'"
-            print "${host}: bridged mix onto PATH (/usr/local/bin/mix -> /opt/cosmix/bin/mix) — mx works over bash login"
+            sh "ssh ${host} 'ln -sf ${remote_mix} /usr/local/bin/mix'"
+            print "${host}: bridged mix onto PATH (/usr/local/bin/mix -> ${remote_mix}) — mx works over bash login"
         end
     end
 

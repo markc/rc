@@ -1,4 +1,4 @@
-#!/opt/cosmix/bin/mix
+#!/usr/bin/env mix
 -- mx — run things on a remote mix-login-shell node. Three modes:
 --
 --   mx <host> <command...>          default: alias-aware + interactive.

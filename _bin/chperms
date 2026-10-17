@@ -1,4 +1,4 @@
-#!/opt/cosmix/bin/mix
+#!/usr/bin/env mix
 -- chperms — fix NS 4.0 vhost permissions on a REMOTE vnode.
 --
 -- Usage: chperms [-n] <vnode> [<vhost>|all]            (default: all)

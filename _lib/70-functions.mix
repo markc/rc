@@ -43,7 +43,7 @@ function edit_shell()
     -- Syntax-check the edit in a child mix BEFORE sourcing, so a typo warns
     -- and leaves the live session intact instead of throwing a parse error
     -- on reload. --check parses without executing; errors land on stderr.
-    $chk = run_rc("/opt/cosmix/bin/mix --check " .. shell_quote($rc))
+    $chk = run_rc("mix --check " .. shell_quote($rc))
     if $chk.rc == 0 then
         source $rc
         print "Reloaded ~/.mixrc"

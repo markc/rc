@@ -1,4 +1,4 @@
-#!/opt/cosmix/bin/mix
+#!/usr/bin/env mix
 -- ramsum — sum RSS for processes matching a pattern.
 -- Bareword-callable twin of the old function ramsum($pat): `ramsum <pat>`
 -- takes the pattern as a bare first arg (no quotes), shell_quote()d before

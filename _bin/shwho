@@ -1,4 +1,4 @@
-#!/opt/cosmix/bin/mix
+#!/usr/bin/env mix
 -- shwho — one-screen registration + DNS summary for a domain: registrar,
 -- nameservers, DNSSEC, A records, MX hosts with their IPs and PTRs.
 -- Mix port of the NS 1.0 bash ~/.sh/bin/shwho (1995-2022, AGPL-3.0).
