@@ -49,10 +49,8 @@ function path_drop($p, $deny)
     return $out
 end
 
--- /opt/mixos/bin is the canonical MixOS install dir (mix, noded, …);
--- /opt/cosmix/bin is the legacy dir on not-yet-migrated hosts. Login PATH
--- doesn't always include either (empty /etc/environment, UsePAM-off nodes),
--- so guarantee whichever is present here, mixos first.
+-- /opt/mixos/bin is the canonical MixOS install dir (mix, noded, …). Login
+-- PATH doesn't always include it (empty /etc/environment, UsePAM-off nodes),
+-- so guarantee it's present here, first. cosmix is retired from the PATH.
 $mixos_bin = is_dir("/opt/mixos/bin") ? "/opt/mixos/bin:" : ""
-$cosmix_bin = is_dir("/opt/cosmix/bin") ? "/opt/cosmix/bin:" : ""
-export PATH = path_clean("${HOME}/.rc/_bin:${HOME}/.local/bin:" .. $mixos_bin .. $cosmix_bin .. env("PATH"))
+export PATH = path_clean("${HOME}/.rc/_bin:${HOME}/.local/bin:" .. $mixos_bin .. env("PATH"))
