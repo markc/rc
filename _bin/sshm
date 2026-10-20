@@ -437,9 +437,8 @@ function do_sync($host, $force)
     -- scp the local binary and chmod 0755. Requires that the ssh user
     -- on the remote can write to /opt/mixos/bin/ (i.e. is root, or
     -- /opt/mixos/bin/ is pre-created with appropriate perms).
-    -- /opt/mixos/bin is canonical; a legacy /opt/cosmix/bin/mix is accepted
-    -- as-is so not-yet-migrated hosts keep working (never re-created).
-    $remote_mix = trim(sh "ssh ${host} 'if test -x /opt/mixos/bin/mix; then echo /opt/mixos/bin/mix; elif test -x /opt/cosmix/bin/mix; then echo /opt/cosmix/bin/mix; else echo no; fi' 2>/dev/null")
+    -- /opt/mixos/bin/mix is the only mix: the fleet has no cosmix install left.
+    $remote_mix = trim(sh "ssh ${host} 'if test -x /opt/mixos/bin/mix; then echo /opt/mixos/bin/mix; else echo no; fi' 2>/dev/null")
     $have_mix = false
     if $remote_mix != "no" and $remote_mix != "" then
         print "${host} already has ${remote_mix}"
