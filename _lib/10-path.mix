@@ -51,6 +51,6 @@ end
 
 -- /opt/mixos/bin is the canonical MixOS install dir (mix, noded, …). Login
 -- PATH doesn't always include it (empty /etc/environment, UsePAM-off nodes),
--- so guarantee it's present here, first. cosmix is retired from the PATH.
+-- so guarantee it's present here, first.
 $mixos_bin = is_dir("/opt/mixos/bin") ? "/opt/mixos/bin:" : ""
 export PATH = path_clean("${HOME}/.rc/_bin:${HOME}/.local/bin:" .. $mixos_bin .. env("PATH"))

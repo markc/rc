@@ -7,7 +7,7 @@
 --   chperms -n cachyos.kanary.org                  dry run (print, don't apply)
 --
 -- This runs LOCALLY (markc) and drives the remote node over ssh as root. ALL
--- getent lookups + chmod/chown run ON THE REMOTE, so the cosmix-webd group GID
+-- getent lookups + chmod/chown run ON THE REMOTE, so the webd group GID
 -- is resolved live per-node — it is NOT hardwired (Debian/Arch/CachyOS each
 -- allocate it differently; OSTYPE is a bash-only var that isn't even exported,
 -- so `getent group` on the target is the only authoritative source).
@@ -17,7 +17,7 @@
 -- (the on-node NS 3.0 variant, dispatched via `ns <vnode> chperms`).
 
 $VPATH  = "/srv"          -- per-domain vhost root (NS 4.0 §3.1)
-$WEBGRP = "cosmix-webd"   -- web group; its GID is resolved live on the remote
+$WEBGRP = "webd"          -- web group; its GID is resolved live on the remote
 
 -- ========== usage ==========
 
@@ -31,13 +31,13 @@ function usage()
     print "  chperms -n cachyos.kanary.org                  dry run (print, don't apply)"
     print ""
     print "The vnode is an ssh target (root@<node> via ~/.ssh/config). getent +"
-    print "chmod/chown all run on the REMOTE node; the cosmix-webd GID is resolved"
+    print "chmod/chown all run on the REMOTE node; the webd GID is resolved"
     print "there, never hardwired."
 end
 
 -- ========== remote helpers ==========
 
--- Resolve the cosmix-webd GID on the target node (authoritative per-node).
+-- Resolve the webd GID on the target node (authoritative per-node).
 function remote_web_gid($host)
     $r = ssh_run($host, "getent group " .. $WEBGRP)
     if not $r.ok or trim($r.stdout) == "" then
@@ -96,7 +96,7 @@ function build_cmds($v, $wgid)
     end
     push($c, "chmod 0755 " .. $u)
 
-    -- web/ subtree: group = cosmix-webd so webd reads handlers + serves public
+    -- web/ subtree: group = webd so webd reads handlers + serves public
     -- via group membership while the per-domain user owns the files.
     push($c, "test -d " .. $web .. " && chown -R " .. $webown .. " " .. $web .. " || true")
     push($c, "test -d " .. $web .. " && chmod 0755 " .. $web .. " || true")

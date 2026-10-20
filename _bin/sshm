@@ -407,7 +407,7 @@ function do_sync($host, $force)
 
     -- Push ~/.rc/ (the scaffold), nothing more. Dev artifacts and source
     -- live on the canonical cachyos box; remotes get the rc scaffold only.
-    -- The dedicated deploy_*.mix scripts in cosmix handle daemon binaries.
+    -- Daemon binaries come from the MixOS gold tree (/opt/mixos/bin), not from here.
     $RC = "${HOME}/.rc"
     print "Syncing ~/.rc/ to ${host}:~/.rc/..."
     -- tar-over-ssh, not rsync: needs only `tar` + `ssh`, both default on every
@@ -437,7 +437,7 @@ function do_sync($host, $force)
     -- scp the local binary and chmod 0755. Requires that the ssh user
     -- on the remote can write to /opt/mixos/bin/ (i.e. is root, or
     -- /opt/mixos/bin/ is pre-created with appropriate perms).
-    -- /opt/mixos/bin/mix is the only mix: the fleet has no cosmix install left.
+    -- /opt/mixos/bin/mix is the only mix on the fleet.
     $remote_mix = trim(sh "ssh ${host} 'if test -x /opt/mixos/bin/mix; then echo /opt/mixos/bin/mix; else echo no; fi' 2>/dev/null")
     $have_mix = false
     if $remote_mix != "no" and $remote_mix != "" then
