@@ -53,4 +53,7 @@ end
 -- PATH doesn't always include it (empty /etc/environment, UsePAM-off nodes),
 -- so guarantee it's present here, first.
 $mixos_bin = is_dir("/opt/mixos/bin") ? "/opt/mixos/bin:" : ""
-export PATH = path_clean("${HOME}/.rc/_bin:${HOME}/.local/bin:" .. $mixos_bin .. env("PATH"))
+-- /opt/mix/bin is the MixViu base (mix, mixd, viud, …; desk4 from 2026-11-08).
+-- Where both exist, MixViu wins; MixOS-only hosts (desk3) are unchanged.
+$mix_bin = is_dir("/opt/mix/bin") ? "/opt/mix/bin:" : ""
+export PATH = path_clean("${HOME}/.rc/_bin:${HOME}/.local/bin:" .. $mix_bin .. $mixos_bin .. env("PATH"))
