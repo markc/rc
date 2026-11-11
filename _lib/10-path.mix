@@ -49,11 +49,13 @@ function path_drop($p, $deny)
     return $out
 end
 
--- /opt/mixos/bin is the canonical MixOS install dir (mix, noded, …). Login
--- PATH doesn't always include it (empty /etc/environment, UsePAM-off nodes),
--- so guarantee it's present here, first.
-$mixos_bin = is_dir("/opt/mixos/bin") ? "/opt/mixos/bin:" : ""
--- /opt/mix/bin is the MixViu base (mix, mixd, viud, …; desk4 from 2026-11-08).
--- Where both exist, MixViu wins; MixOS-only hosts (desk3) are unchanged.
+-- /opt/mix/bin is the install dir (mix, mixd, viud, …). Login PATH doesn't
+-- always include it (empty /etc/environment, UsePAM-off nodes), so guarantee
+-- it's present here, first.
 $mix_bin = is_dir("/opt/mix/bin") ? "/opt/mix/bin:" : ""
-export PATH = path_clean("${HOME}/.rc/_bin:${HOME}/.local/bin:" .. $mix_bin .. $mixos_bin .. env("PATH"))
+-- Hosts not yet moved still keep their binaries under the old prefix; it
+-- stays on PATH, after /opt/mix/bin, until the last one has moved. Delete
+-- these two lines then.
+$legacy = "/opt/mixos/bin"
+$legacy_bin = is_dir($legacy) ? $legacy .. ":" : ""
+export PATH = path_clean("${HOME}/.rc/_bin:${HOME}/.local/bin:" .. $mix_bin .. $legacy_bin .. env("PATH"))
