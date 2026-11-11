@@ -67,7 +67,7 @@ and plain `ssh host cmd` do **not** load it — only interactive sessions.
 
 `10-path` → `20-aliases` → `30-pkgmgr` → `40-ssh-hosts` → `50-tools` →
 `60-prompt` → `70-functions`. Earlier modules establish state later ones
-depend on: `10-path` exports `$PATH` (incl. `/opt/cosmix/bin` when the
+depend on: `10-path` exports `$PATH` (incl. `/opt/mix/bin` when the
 dir exists) and defines `path_clean()`/`path_drop()`; `30-pkgmgr` keys
 off `$ostyp` and `$SUDO` from `_mixrc`; `60-prompt` sets `$LABEL`/`$COLOR`
 defaults the user's `~/.mixrc` overrides *after* the glob. To extend,
@@ -79,23 +79,23 @@ state.
 `sshm pull`/`push` operate on the **toolkit repo itself** (`$REPO`,
 default `~/.rc`, `RC_SRC` env override). `sshm sync <host>` rsyncs
 `~/.rc/` with `--delete` (excluding `.git`, `_journal`, `_doc`) and
-bootstraps `/opt/cosmix/bin/mix` on the remote if missing.
+bootstraps `/opt/mix/bin/mix` on the remote if missing.
 
 ## Verifying changes
 
 ```sh
 # Syntax check (parses without executing — the gate `es` uses):
-/opt/cosmix/bin/mix --check ~/.rc/_lib/20-aliases.mix
+/opt/mix/bin/mix --check ~/.rc/_lib/20-aliases.mix
 
 # Full reload from inside a running Mix shell:
 source env("HOME") .. "/.mixrc"
 
 # Cleanest: open a fresh interactive shell and exercise the change.
-/opt/cosmix/bin/mix
+/opt/mix/bin/mix
 ```
 
-If `/opt/cosmix/bin/mix` is missing, the scaffold cannot be tested — say
-so loudly (`ERROR: /opt/cosmix/bin/mix not installed`) rather than
+If `/opt/mix/bin/mix` is missing, the scaffold cannot be tested — say
+so loudly (`ERROR: /opt/mix/bin/mix not installed`) rather than
 silently falling back to bash.
 
 ## Repo-specific Mix notes
@@ -117,7 +117,7 @@ are the behaviours this codebase leans on:
   subshell — that's why `es` can `source ~/.mixrc` and have the reload
   land in the live session.
 - **Full paths in scripts.** `run`/`run_rc`/`sh` spawn `/bin/sh` with a
-  minimal PATH; call binaries as `/opt/cosmix/bin/…`, never bareword.
+  minimal PATH; call binaries as `/opt/mix/bin/…`, never bareword.
 
 ## Conventions to keep
 

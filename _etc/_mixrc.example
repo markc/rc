@@ -23,7 +23,7 @@ source env("HOME") .. "/.rc/_mixrc"
 
 -- ─── PATH (machine-local additions, deduped as the final step) ──────
 -- The toolkit's 10-path.mix already prepends ~/.rc/_bin, ~/.local/bin and
--- /opt/cosmix/bin (when present). Add machine dirs here, then path_clean()
+-- /opt/mix/bin (when present). Add machine dirs here, then path_clean()
 -- the result so overlapping prepends collapse to one occurrence each:
 -- export PATH = path_clean(env("HOME") .. "/.cargo/bin:" .. env("PATH"))
 

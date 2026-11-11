@@ -14,11 +14,11 @@ runtime. The `mix` binary comes from [`markc/mix`](https://github.com/markc/mix)
 ```sh
 git clone https://github.com/markc/rc ~/.rc
 cp ~/.rc/_etc/_mixrc.example ~/.mixrc
-/opt/cosmix/bin/mix          # open an interactive Mix shell — toolkit loads
+/opt/mix/bin/mix             # open an interactive Mix shell — toolkit loads
 sshm                         # the ssh manager, now on PATH
 ```
 
-(Needs the `mix` binary at `/opt/cosmix/bin/mix` first — see
+(Needs the `mix` binary at `/opt/mix/bin/mix` first — see
 [Installation](#installation).)
 
 ## Understanding rc — the mental model
@@ -27,7 +27,7 @@ Three layers, three owners:
 
 | Layer | Where | Owner |
 |---|---|---|
-| The `mix` binary | `/opt/cosmix/bin/mix` | [`markc/mix`](https://github.com/markc/mix) releases |
+| The `mix` binary | `/opt/mix/bin/mix` | [`markc/mix`](https://github.com/markc/mix) releases |
 | The shared toolkit | `~/.rc/` (this repo) | git — identical on every host |
 | Machine-local config | `~/.mixrc` | you — never in git (secrets, host PATH, label) |
 
@@ -50,7 +50,7 @@ module needs from earlier ones.
 
 ### Why Mix only
 
-Every file here is Mix source (`.mix` modules, `#!/opt/cosmix/bin/mix`
+Every file here is Mix source (`.mix` modules, `#!/usr/bin/env mix`
 scripts). No bash fallbacks: if a Mix builtin is missing, the fix goes
 into the interpreter (`cosmix-lib-mix` in the mix repo), not a shell-out
 workaround here.
@@ -65,9 +65,9 @@ binary.
 From the latest GitHub release (x86_64-linux-gnu, glibc 2.39+):
 
 ```sh
-sudo install -d /opt/cosmix/bin
+sudo install -d /opt/mix/bin
 curl -fsSL https://github.com/markc/mix/releases/latest/download/mix \
-  | sudo tee /opt/cosmix/bin/mix > /dev/null && sudo chmod 0755 /opt/cosmix/bin/mix
+  | sudo tee /opt/mix/bin/mix > /dev/null && sudo chmod 0755 /opt/mix/bin/mix
 ```
 
 Or build from source — clone [`markc/amp`](https://github.com/markc/amp)
@@ -78,10 +78,10 @@ Or build from source — clone [`markc/amp`](https://github.com/markc/amp)
 git clone https://github.com/markc/amp ~/.amp
 git clone https://github.com/markc/mix ~/.mix
 cd ~/.mix/src && cargo build --release
-sudo install -m 0755 target/release/mix /opt/cosmix/bin/mix
+sudo install -m 0755 target/release/mix /opt/mix/bin/mix
 ```
 
-`/opt/cosmix/bin/` is the canonical install location — the toolkit's
+`/opt/mix/bin/` is the canonical install location — the toolkit's
 PATH setup and every script shebang assume it.
 
 ### 2. Clone the toolkit and seed your trampoline
@@ -97,16 +97,16 @@ it out of git.
 ### 3. Make mix your login shell (optional, when ready)
 
 ```sh
-echo /opt/cosmix/bin/mix | sudo tee -a /etc/shells
-chsh -s /opt/cosmix/bin/mix
+echo /opt/mix/bin/mix | sudo tee -a /etc/shells
+chsh -s /opt/mix/bin/mix
 ```
 
 ### A note on PATH
 
 Login environments differ: on PAM systems `/etc/environment` usually
-injects a PATH that may or may not include `/opt/cosmix/bin`; hosts with
+injects a PATH that may or may not include `/opt/mix/bin`; hosts with
 `UsePAM no` in sshd ignore `/etc/environment` entirely. The toolkit
-doesn't care — `_lib/10-path.mix` guarantees `/opt/cosmix/bin` on PATH
+doesn't care — `_lib/10-path.mix` guarantees `/opt/mix/bin` on PATH
 whenever the directory exists, so `mix`, `which mix`, and the daemon
 binaries resolve on every toolkit host regardless of how the login
 environment was built.
@@ -117,13 +117,13 @@ environment was built.
 **login shell** has to find bare `mix` to launch it. On a mix-login-shell host
 that is automatic. On a **bash-login host** — a stock Debian PVE/PBS box you
 want to drive with `mx` *without* converting it to a Mix login shell —
-`/opt/cosmix/bin` is not on bash's non-interactive PATH, so `mx` fails with
+`/opt/mix/bin` is not on bash's non-interactive PATH, so `mx` fails with
 `mix: command not found`. The `10-path.mix` fix above only applies *inside* a
 mix session, which is the chicken-and-egg: you can't start mix to fix the PATH
 that lets you start mix.
 
 `sshm sync <host>` bridges this automatically. After installing the binary it
-symlinks `/opt/cosmix/bin/mix` into `/usr/local/bin` (which is on the default
+symlinks `/opt/mix/bin/mix` into `/usr/local/bin` (which is on the default
 PATH) whenever the remote login shell isn't already mix. That symlink is the
 **entire footprint** on a bash host, and it is inert until someone types `mix`.
 It does **not** touch bash's rc chain: the toolkit (`~/.rc`, `~/.mixrc`) is read
@@ -178,7 +178,7 @@ modules set.
 | `$HOME` | `_mixrc` | home directory |
 | `$ostyp` | `_mixrc` | distro `ID` from `/etc/os-release` (`unknown` if absent) |
 | `$SUDO` | `_mixrc` | `"/usr/bin/sudo "` for non-root, `""` for root |
-| `PATH` | `10-path.mix` | `~/.rc/_bin : ~/.local/bin : /opt/cosmix/bin (if present) : inherited`, deduped |
+| `PATH` | `10-path.mix` | `~/.rc/_bin : ~/.local/bin : /opt/mix/bin (if present) : inherited`, deduped |
 | `$LABEL` | `60-prompt.mix` | prompt hostname label (default `hostname()`) |
 | `$COLOR` | `60-prompt.mix` | prompt ANSI colour code (default `32`, green) |
 
@@ -295,7 +295,7 @@ export PATH = path_clean(env("HOME") .. "/.cargo/bin:" .. env("PATH"))
 
 ## Helper commands (`_bin/`)
 
-All are Mix scripts (`#!/opt/cosmix/bin/mix`) on PATH via `10-path.mix`.
+All are Mix scripts (`#!/usr/bin/env mix`) on PATH via `10-path.mix`.
 
 ### `f` — find files by name
 
@@ -421,11 +421,11 @@ Two things happen:
 1. `rsync --delete` of `~/.rc/` to the remote (excluding `.git`,
    `_journal`, `_doc`) — the remote gets exactly the scaffold, nothing
    more.
-2. If the remote lacks `/opt/cosmix/bin/mix`, the local binary is
+2. If the remote lacks `/opt/mix/bin/mix`, the local binary is
    scp'd over and made executable, with a hint for the `chsh` step.
 
 Idempotent — run it again any time the toolkit changes. The remote user
-must be able to write `/opt/cosmix/bin/` for the bootstrap (root, or a
+must be able to write `/opt/mix/bin/` for the bootstrap (root, or a
 pre-created dir).
 
 ## Keeping rc updated — sshm pull and push
@@ -472,7 +472,7 @@ label, personal aliases — it belongs in `~/.mixrc` (never committed).
 **`mix: not found` inside the shell, but `which mix` answers.**
 `which`/`type` are REPL builtins — they know the binary's own location;
 spawning `mix` as a command needs it on `$PATH`. Since `10-path.mix`
-guarantees `/opt/cosmix/bin` whenever the directory exists, reload the
+guarantees `/opt/mix/bin` whenever the directory exists, reload the
 rc (`es`, or a fresh login) and it resolves.
 
 **Aliases missing over `ssh host cmd`.** Expected — `~/.mixrc` loads
@@ -501,7 +501,7 @@ chsh -s /bin/bash        # if mix was your login shell
 rm -rf ~/.rc ~/.mixrc    # the toolkit + your personal trampoline
 ```
 
-The mix binary (`/opt/cosmix/bin/mix`) is separate — remove it (and its
+The mix binary (`/opt/mix/bin/mix`) is separate — remove it (and its
 `/etc/shells` line) only if nothing else on the host uses it.
 
 ## Status
