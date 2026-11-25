@@ -7,7 +7,7 @@ if $ostyp == "cachyos" or $ostyp == "arch" then
     alias r = "${SUDO}pacman -Rns"
     alias s = "pacman -Ss"
     alias u = "${SUDO}pacman -Syu --noconfirm"
-    alias uc = "${SUDO}pacman -Syu --noconfirm && ${SUDO}pacman -Scc --noconfirm && pacman -Qdtq | ${SUDO}pacman -Rns --noconfirm -"
+    alias uc = "${SUDO}pacman -Syu --noconfirm && yes | ${SUDO}pacman -Scc && pacman -Qdtq | ${SUDO}pacman -Rns --noconfirm -"
     alias lspkg = "pacman -Qs"
     alias edpkg = "${SUDO}msedit /etc/pacman.conf"
 else if $ostyp == "alpine" then
