@@ -231,17 +231,17 @@ every distro:
 
 | Op | Arch/CachyOS | Alpine | Debian/Ubuntu |
 |---|---|---|---|
-| `i <pkg>` install | `paru -S` | `apk add` | `apt-get install` |
-| `r <pkg>` remove | `paru -Rns` | `apk del` | `apt-get remove --purge` |
-| `s <pat>` search | `paru -Ss` | `apk search -v` | `apt-cache search` |
+| `i <pkg>` install | `pacman -S` | `apk add` | `apt-get install` |
+| `r <pkg>` remove | `pacman -Rns` | `apk del` | `apt-get remove --purge` |
+| `s <pat>` search | `pacman -Ss` | `apk search -v` | `apt-cache search` |
 | `u` upgrade | `pacman -Syu` | `apk update && upgrade` | full dist-upgrade + autoremove + clean |
-| `lspkg` list | `paru -Qs` | `apk info \| sort` | `dpkg -l` |
+| `lspkg` list | `pacman -Qs` | `apk info \| sort` | `dpkg -l` |
 | `edpkg` edit config | `pacman.conf` | — | `sources.list` |
 
-Arch/CachyOS additionally get upgrade tiers: `ua` (AUR only), `uu`
-(repos + AUR), `uc` (upgrade + cache clean + orphan removal). All
-non-self-elevating commands carry the `${SUDO}` prefix, so they work
-for root and non-root alike.
+Arch/CachyOS additionally get `uc` (upgrade + cache clean + orphan
+removal). Everything is plain `pacman` (no AUR helper); privileged
+commands carry the `${SUDO}` prefix, so they work for root and non-root
+alike.
 
 ## SSH host shortcuts
 

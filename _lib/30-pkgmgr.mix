@@ -1,16 +1,14 @@
 -- 30-pkgmgr.mix — per-distro package manager aliases.
 -- Depends on $ostyp and $SUDO set in ~/.rc/_mixrc ("" when root, so these
--- work on root-only hosts with no sudo installed; paru self-elevates).
+-- work on root-only hosts with no sudo installed).
 
 if $ostyp == "cachyos" or $ostyp == "arch" then
-    alias i = "paru -S --skipreview --noconfirm"
-    alias r = "paru -Rns"
-    alias s = "paru -Ss"
+    alias i = "${SUDO}pacman -S --noconfirm"
+    alias r = "${SUDO}pacman -Rns"
+    alias s = "pacman -Ss"
     alias u = "${SUDO}pacman -Syu --noconfirm"
-    alias ua = "paru -Sua --noconfirm --skipreview"
-    alias uu = "paru -Syu --noconfirm --skipreview"
-    alias uc = "paru -Syu --noconfirm --skipreview && paru -Scc --noconfirm && paru -c --noconfirm"
-    alias lspkg = "paru -Qs"
+    alias uc = "${SUDO}pacman -Syu --noconfirm && ${SUDO}pacman -Scc --noconfirm && pacman -Qdtq | ${SUDO}pacman -Rns --noconfirm -"
+    alias lspkg = "pacman -Qs"
     alias edpkg = "${SUDO}msedit /etc/pacman.conf"
 else if $ostyp == "alpine" then
     alias i = "${SUDO}apk add"
