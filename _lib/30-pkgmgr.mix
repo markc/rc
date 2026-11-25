@@ -10,6 +10,7 @@ if $ostyp == "cachyos" or $ostyp == "arch" then
     alias uc = "${SUDO}pacman -Syu --noconfirm && yes | ${SUDO}pacman -Scc && pacman -Qdtq | ${SUDO}pacman -Rns --noconfirm -"
     alias lspkg = "pacman -Qs"
     alias edpkg = "${SUDO}msedit /etc/pacman.conf"
+    alias uz = "zoom_update(false)"
 else if $ostyp == "alpine" then
     alias i = "${SUDO}apk add"
     alias r = "${SUDO}apk del"
@@ -23,4 +24,41 @@ else if $ostyp == "debian" or $ostyp == "ubuntu" then
     alias u = "${SUDO}apt-get update && ${SUDO}apt-get -y -f dist-upgrade && ${SUDO}apt-get -y autoremove && ${SUDO}apt-get clean"
     alias lspkg = "dpkg -l"
     alias edpkg = "${SUDO}msedit /etc/apt/sources.list"
+end
+
+-- Zoom update (Arch, alias `uz`). Zoom publishes its own pacman package; the
+-- "latest" URL redirects to a versioned CDN path, so compare that version with
+-- the installed one and only download when it differs (`zoom_update(true)`
+-- forces a reinstall). Zoom never self-updates on Linux (pacman owns
+-- /opt/zoom), so this is its only update path. Not `pacman -U <url>`: Zoom
+-- ships no .sig and the default RemoteFileSigLevel=Required refuses it; a
+-- downloaded local file falls under LocalFileSigLevel=Optional.
+function zoom_update($force)
+    $head = run_argv(["curl", "-sI", "https://zoom.us/client/latest/zoom_x86_64.pkg.tar.xz"])
+    $m = re_find($head.stdout, "(?i)location: (https://\\S+/prod/([0-9.]+)/zoom_x86_64\\.pkg\\.tar\\.xz)")
+    if len($m) == 0 then
+        print "✗ uz: could not read the latest Zoom version from zoom.us"
+        return nil
+    end
+    $url = $m[0].groups[0]
+    $latest = $m[0].groups[1]
+    $q = run_argv(["pacman", "-Q", "zoom"])
+    $have = "none"
+    if $q.ok then
+        $have = trim($q.stdout)
+    end
+    print "zoom installed: ${have}  latest: ${latest}"
+    if not $force and re_match($have, "^zoom " .. replace($latest, ".", "\\.") .. "-") then
+        print "zoom is up to date"
+        return nil
+    end
+    $dir = trim(run_argv_must(["mktemp", "-d"]))
+    $pkg = "${dir}/zoom-${latest}-x86_64.pkg.tar.xz"
+    $dl = run_argv(["curl", "-fL", "--progress-bar", "-o", $pkg, $url], {stderr: "inherit", timeout: 600})
+    if $dl.ok then
+        sh "${SUDO}pacman -U --noconfirm ${pkg}"
+    else
+        print "✗ uz: download failed (curl exit ${dl.exit_code})"
+    end
+    run_argv(["rm", "-rf", $dir])
 end

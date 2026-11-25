@@ -239,7 +239,9 @@ every distro:
 | `edpkg` edit config | `pacman.conf` | — | `sources.list` |
 
 Arch/CachyOS additionally get `uc` (upgrade + cache clean + orphan
-removal). Everything is plain `pacman` (no AUR helper); privileged
+removal) and `uz` (update Zoom from zoom.us's own pacman package; it
+downloads only when a newer version is out, since Zoom never self-updates
+on Linux). Everything is plain `pacman` (no AUR helper); privileged
 commands carry the `${SUDO}` prefix, so they work for root and non-root
 alike.
 
