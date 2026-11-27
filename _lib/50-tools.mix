@@ -1,3 +1,10 @@
 -- 50-tools.mix — agent / tooling shortcuts.
 
 alias ai = "claude --dangerously-skip-permissions"
+
+-- dig muscle memory: desk4 has ldns's drill, not bind (2026-11-27; on Arch
+-- dnsutils resolves to the whole bind server). Only where dig is missing, so
+-- a host with real dig keeps it. Output format differs; flags mostly match.
+if which("dig") == nil and which("drill") != nil then
+  alias dig = "drill"
+end
